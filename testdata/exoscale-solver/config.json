@@ -1,0 +1,10 @@
+{
+  "apiKeyRef": {
+    "name": "api-key",
+    "key": "EXOSCALE_API_KEY"
+  },
+  "apiSecretRef": {
+    "name": "api-secret",
+    "key": "EXOSCALE_API_SECRET"
+  }
+}
