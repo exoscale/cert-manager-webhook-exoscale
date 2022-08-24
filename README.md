@@ -1,8 +1,7 @@
-# ACME webhook for Exoscale
-
 # cert-manager Webhook for Exoscale
 
 cert-manager Webhook for Exoscale is [cert-manager-webhook](https://cert-manager.io/docs/configuration/acme/dns01/webhook/) allowing users to use [Exoscale DNS](https://community.exoscale.com/documentation/dns/) for DNS01 challenge.
+Based on [Example Webhook](https://github.com/cert-manager/webhook-example).
 
 ## Getting started
 
