@@ -21,7 +21,7 @@ Once everything is set up, install Exoscale Webhook:
 ```bash
 git clone https://github.com/exoscale/cert-manager-webhook-exoscale.git
 cd cert-manager-webhook-exoscale
-helm install exoscale-webhook deploy/exoscale-webhook
+helm install exoscale-webhook ./deploy/exoscale-webhook
 ```
 
 ### How to use it
@@ -111,6 +111,18 @@ NAME          READY   SECRET            AGE
 example-com   True    example-com-tls   0m52s
 ```
 
+### Debugging
+
+To see more detailed logs, set one or both environment variables to any value:
+- `EXOSCALE_DEBUG`: shows debug logs;
+- `EXOSCALE_API_TRACE`: prints API requests/responses.
+
+Easiest way to set them is through helm (exposed as `env.debug` and `env.trace`):
+
+```
+helm install exoscale-webhook ./deploy/exoscale-webhook --set env.debug=1 --set env.trace=1
+```
+
 ## Integration testing
 
 Before running the test, you need:
@@ -120,10 +132,5 @@ Before running the test, you need:
 In order to run the integration tests, run:
 ```bash
 TEST_ZONE_NAME=example.com make test
-```
-
-For debugging API calls, run tests as:
-```bash
-EXOSCALE_TRACE=1 TEST_ZONE_NAME=example.com make test
 ```
 

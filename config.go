@@ -14,7 +14,8 @@ const (
 
 	envAPIKey    = envPrefix + "API_KEY"
 	envAPISecret = envPrefix + "API_SECRET"
-	envTrace     = envPrefix + "TRACE"
+	envTrace     = envPrefix + "API_TRACE"
+	envDebug     = envPrefix + "DEBUG"
 )
 
 const (

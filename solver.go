@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -30,6 +29,7 @@ var (
 // [exoscale DNS]: https://community.exoscale.com/documentation/dns/
 type ExoscaleSolver struct {
 	kClient *kubernetes.Clientset
+	logger  Logger
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -43,7 +43,12 @@ func (c *ExoscaleSolver) Name() string {
 // client that will be used to fetch Secret resources containing
 // credentials used to authenticate with Exoscale API.
 func (c *ExoscaleSolver) Initialize(kubeClientConfig *rest.Config, _ <-chan struct{}) error {
-	log.Println("call function Initialize")
+	c.logger = Logger{}
+	if os.Getenv(envDebug) != "" {
+		c.logger.Verbose = true
+	}
+
+	c.logger.Debug("call function Initialize")
 
 	cl, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
@@ -58,7 +63,7 @@ func (c *ExoscaleSolver) Initialize(kubeClientConfig *rest.Config, _ <-chan stru
 // Present is responsible for actually presenting the DNS record with the
 // Exoscale DNS.
 func (c *ExoscaleSolver) Present(ch *v1alpha1.ChallengeRequest) error {
-	log.Printf("call function Present: namespace=%s, zone=%s, fqdn=%s",
+	c.logger.Debugf("call function Present: namespace=%s, zone=%s, fqdn=%s",
 		ch.ResourceNamespace, ch.ResolvedZone, ch.ResolvedFQDN)
 
 	config, err := LoadConfig(ch.Config)
@@ -100,7 +105,7 @@ func (c *ExoscaleSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 
 // CleanUp deletes the relevant TXT record from the Exoscale DNS.
 func (c *ExoscaleSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	log.Printf("call function CleanUp: namespace=%s, zone=%s, fqdn=%s",
+	c.logger.Debugf("call function CleanUp: namespace=%s, zone=%s, fqdn=%s",
 		ch.ResourceNamespace, ch.ResolvedZone, ch.ResolvedFQDN)
 
 	config, err := LoadConfig(ch.Config)
@@ -137,7 +142,7 @@ func (c *ExoscaleSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		}
 	}
 
-	log.Printf("domain record %q not found, nothing to do", recordName)
+	c.logger.Infof("domain record %q not found, nothing to do", recordName)
 
 	return nil
 }
@@ -165,15 +170,14 @@ func (c *ExoscaleSolver) findDomain(
 	return nil, fmt.Errorf("domain %q not found", domainName)
 }
 
-// apiClient is a helper that initializes Egoscale (Exoscale API) client,
-// as well as configuring a proper context.
+// apiClient is a helper that initializes Egoscale (Exoscale API) client.
 func (c *ExoscaleSolver) apiClient(ch *v1alpha1.ChallengeRequest, config Config) (*exoscale.Client, error) {
 	var apiKey, apiSecret string
 
 	switch {
 	case os.Getenv(envAPIKey) != "" && os.Getenv(envAPISecret) != "":
 		// env always take precedence over config.
-		log.Println("found client credentials in environment, ignoring config")
+		c.logger.Info("found client credentials in environment, ignoring config")
 		apiKey = os.Getenv(envAPIKey)
 		apiSecret = os.Getenv(envAPISecret)
 	case config.APIKeyRef != nil && config.APISecretRef != nil:

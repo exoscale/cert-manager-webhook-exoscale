@@ -30,6 +30,10 @@ spec:
           env:
             - name: GROUP_NAME
               value: {{ .Values.groupName | quote }}
+            - name: EXOSCALE_DEBUG
+              value: {{ .Values.env.debug | quote }}
+            - name: EXOSCALE_API_TRACE
+              value: {{ .Values.env.trace | quote}}
           ports:
             - name: https
               containerPort: 443

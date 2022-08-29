@@ -17,9 +17,14 @@ secret:
   secretKey: ""
   name: exoscale-webhook-secret
 
+env:
+  debug: ""
+  trace: ""
+
 service:
   type: ClusterIP
   port: 443
+
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
