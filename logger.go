@@ -2,7 +2,7 @@ package main
 
 import "log"
 
-// Logger is a thin wrapper around stdlib.log with just 3 levels (info, error & debug).
+// Logger is a thin wrapper around stdlib.log with just 2 levels (info & debug).
 type Logger struct {
 	Verbose bool
 }

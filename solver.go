@@ -44,6 +44,7 @@ func (c *ExoscaleSolver) Name() string {
 // credentials used to authenticate with Exoscale API.
 func (c *ExoscaleSolver) Initialize(kubeClientConfig *rest.Config, _ <-chan struct{}) error {
 	c.logger = Logger{}
+	// debug can be set only through environment.
 	if os.Getenv(envDebug) != "" {
 		c.logger.Verbose = true
 	}
@@ -171,6 +172,7 @@ func (c *ExoscaleSolver) findDomain(
 }
 
 // apiClient is a helper that initializes Egoscale (Exoscale API) client.
+// Resolves any configuration overrides from environment.
 func (c *ExoscaleSolver) apiClient(ch *v1alpha1.ChallengeRequest, config Config) (*exoscale.Client, error) {
 	var apiKey, apiSecret string
 
