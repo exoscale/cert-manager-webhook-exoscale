@@ -1,25 +1,10 @@
-FROM golang:1.19-alpine AS build_deps
-
-RUN apk add --no-cache git
-
-WORKDIR /workspace
-
-COPY go.mod .
-COPY go.sum .
-
-RUN go mod download
-
-FROM build_deps AS build
-
-COPY . .
-
-RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
-
+# This Dockerfile variant is for usage with GoReleaser, which reuses the binaries
+# compiled in configured builds instead of re-compiling it in a container.
 FROM alpine:3.16
 
 RUN apk add --no-cache ca-certificates
 
-COPY --from=build /workspace/webhook /usr/local/bin/webhook
+COPY ./webhook /usr/local/bin/webhook
 
 ARG VERSION
 ARG VCS_REF

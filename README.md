@@ -131,6 +131,6 @@ Before running the test, you need:
 
 In order to run the integration tests, run:
 ```bash
-TEST_ZONE_NAME=example.com make test
+TEST_ZONE_NAME=example.com make integration-test
 ```
 

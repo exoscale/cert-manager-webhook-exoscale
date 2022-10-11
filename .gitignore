@@ -17,3 +17,6 @@ cert-manager-webhook-exoscale
 # Make artifacts
 _out
 _test
+dist
+release
+bin
