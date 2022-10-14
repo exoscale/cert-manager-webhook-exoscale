@@ -24,7 +24,7 @@ dockers:
   dockerfile: Dockerfile.goreleaser
   build_flag_templates:
   - --pull
-	- --build-arg="VERSION={{.Version}}"
+  - --build-arg="VERSION={{.Version}}"
   - --build-arg="VCS_REF={{.ShortCommit}}"
   - --build-arg="BUILD_DATE={{.Date}}"
 
