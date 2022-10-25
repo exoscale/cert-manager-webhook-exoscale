@@ -1,8 +1,11 @@
+PROJECT_URL = https://github.com/exoscale/cert-manager-webhook-exoscale
+include go.mk/init.mk
+include go.mk/public.mk
+
 OS ?= $(shell go env GOOS)
 ARCH ?= $(shell go env GOARCH)
 
-IMAGE_NAME := "cert-manager-webhook-exoscale"
-IMAGE_TAG := "latest"
+IMAGE_NAME := "exoscale/cert-manager-webhook-exoscale"
 
 OUT := $(shell pwd)/_out
 
@@ -13,7 +16,7 @@ export TEST_ASSET_ETCD=_test/kubebuilder/bin/etcd
 export TEST_ASSET_KUBE_APISERVER=_test/kubebuilder/bin/kube-apiserver
 export TEST_ASSET_KUBECTL=_test/kubebuilder/bin/kubectl
 
-test: _test/kubebuilder
+integration-test: _test/kubebuilder
 	TEST_ZONE_NAME=$(TEST_ZONE_NAME) go test -v .
 
 _test/kubebuilder:
@@ -24,13 +27,17 @@ _test/kubebuilder:
 	rm kubebuilder-tools.tar.gz
 	rm -R kubebuilder
 
-clean: clean-kubebuilder
-
 clean-kubebuilder:
 	rm -Rf _test/kubebuilder
 
-build:
-	docker build -t "$(IMAGE_NAME):$(IMAGE_TAG)" .
+docker-build:
+	docker build \
+		-t ${IMAGE_NAME} \
+		--build-arg VERSION="${VERSION}" \
+		--build-arg VCS_REF="${GIT_REVISION}" \
+		--build-arg BUILD_DATE="$(shell date -u +"%Y-%m-%dT%H:%m:%SZ")" \
+		.
+	docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:${VERSION}
 
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml:
@@ -39,3 +46,4 @@ rendered-manifest.yaml:
         --set image.repository=$(IMAGE_NAME) \
         --set image.tag=$(IMAGE_TAG) \
         deploy/exoscale-webhook > "$(OUT)/rendered-manifest.yaml"
+
