@@ -8,7 +8,9 @@ GOARCH ?= $(shell $(GO) env GOARCH)
 
 IMAGE_NAME := "exoscale/cert-manager-webhook-exoscale"
 
-OUT := $(shell pwd)/_out
+OUT := ${PWD}/_out
+
+DEPLOY_DIR := $(PWD)/deploy/exoscale-webhook
 
 KUBE_VERSION=1.27.1
 
@@ -43,7 +45,8 @@ docker-build:
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml:
 	helm template \
-	    --name exoscale-webhook \
+	    exoscale-webhook \
         --set image.repository=$(IMAGE_NAME) \
-        --set image.tag=$(IMAGE_TAG) \
-        deploy/exoscale-webhook > "$(OUT)/rendered-manifest.yaml"
+        --set image.tag=$(VERSION) \
+        ${DEPLOY_DIR} > "$(OUT)/rendered-manifest.yaml"
+	cp "${OUT}/rendered-manifest.yaml" "${DEPLOY_DIR}-kustomize/deploy.yaml"
