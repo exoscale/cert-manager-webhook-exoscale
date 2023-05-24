@@ -87,7 +87,7 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: {{ .Values.certManager.serviceAccountName }}
-    namespace: {{ .Values.certManager.namespace }}
+    namespace: {{or .Values.certManager.namespace .Release.Namespace }}
 ---
 # Grant the webhook permission to read the secrets containing the credentials
 apiVersion: rbac.authorization.k8s.io/v1
@@ -128,3 +128,42 @@ subjects:
     kind: ServiceAccount
     name: {{ include "exoscale-webhook.fullname" . }}
     namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "exoscale-webhook.fullname" . }}:flowcontrol-solver
+  labels:
+    app: {{ include "exoscale-webhook.name" . }}
+    chart: {{ include "exoscale-webhook.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+rules:
+  - apiGroups:
+      - "flowcontrol.apiserver.k8s.io"
+    resources:
+      - 'prioritylevelconfigurations'
+      - 'flowschemas'
+    verbs:
+      - 'list'
+      - 'watch'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "exoscale-webhook.fullname" . }}:flowcontrol-solver
+  labels:
+    app: {{ include "exoscale-webhook.name" . }}
+    chart: {{ include "exoscale-webhook.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "exoscale-webhook.fullname" . }}:flowcontrol-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: {{ include "exoscale-webhook.fullname" . }}
+    namespace: {{ .Release.Namespace | quote }}
+---

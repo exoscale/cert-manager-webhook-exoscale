@@ -1,7 +1,8 @@
 groupName: acme.exoscale.com
 
 certManager:
-  namespace: cert-manager
+  # Use this value to specify the namespace cert-manager is located in
+  # namespace: cert-manager
   serviceAccountName: cert-manager
 
 image:
@@ -25,8 +26,8 @@ service:
   type: ClusterIP
   port: 443
 
-
-resources: {}
+resources:
+  {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
