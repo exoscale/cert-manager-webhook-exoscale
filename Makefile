@@ -2,14 +2,15 @@ PROJECT_URL = https://github.com/exoscale/cert-manager-webhook-exoscale
 include go.mk/init.mk
 include go.mk/public.mk
 
-OS ?= $(shell go env GOOS)
-ARCH ?= $(shell go env GOARCH)
+GO ?= $(shell which go)
+OS ?= $(shell $(GO) env GOOS)
+GOARCH ?= $(shell $(GO) env GOARCH)
 
 IMAGE_NAME := "exoscale/cert-manager-webhook-exoscale"
 
 OUT := $(shell pwd)/_out
 
-KUBE_VERSION=1.24.2
+KUBE_VERSION=1.27.1
 
 $(shell mkdir -p "$(OUT)")
 export TEST_ASSET_ETCD=_test/kubebuilder/bin/etcd
@@ -20,7 +21,7 @@ integration-test: _test/kubebuilder
 	TEST_ZONE_NAME=$(TEST_ZONE_NAME) go test -v .
 
 _test/kubebuilder:
-	curl -fsSL https://go.kubebuilder.io/test-tools/$(KUBE_VERSION)/$(OS)/$(ARCH) -o kubebuilder-tools.tar.gz
+	curl -fsSL https://go.kubebuilder.io/test-tools/$(KUBE_VERSION)/$(OS)/$(GOARCH) -o kubebuilder-tools.tar.gz
 	mkdir -p _test/kubebuilder
 	tar -xvf kubebuilder-tools.tar.gz
 	mv kubebuilder/bin _test/kubebuilder/
@@ -46,4 +47,3 @@ rendered-manifest.yaml:
         --set image.repository=$(IMAGE_NAME) \
         --set image.tag=$(IMAGE_TAG) \
         deploy/exoscale-webhook > "$(OUT)/rendered-manifest.yaml"
-

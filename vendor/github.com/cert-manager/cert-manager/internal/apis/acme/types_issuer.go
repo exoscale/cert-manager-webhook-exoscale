@@ -19,7 +19,7 @@ package acme
 import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	gwapi "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	gwapi "sigs.k8s.io/gateway-api/apis/v1beta1"
 
 	cmmeta "github.com/cert-manager/cert-manager/internal/apis/meta"
 )
@@ -49,12 +49,22 @@ type ACMEIssuer struct {
 	// "DST Root CA X3" or "ISRG Root X1" for the newer Let's Encrypt root CA.
 	PreferredChain string
 
-	// Enables or disables validation of the ACME server TLS certificate.
-	// If true, requests to the ACME server will not have their TLS certificate
-	// validated (i.e. insecure connections will be allowed).
+	// Base64-encoded bundle of PEM CAs which can be used to validate the certificate
+	// chain presented by the ACME server.
+	// Mutually exclusive with SkipTLSVerify; prefer using CABundle to prevent various
+	// kinds of security vulnerabilities.
+	// If CABundle and SkipTLSVerify are unset, the system certificate bundle inside
+	// the container is used to validate the TLS connection.
+	CABundle []byte
+
+	// INSECURE: Enables or disables validation of the ACME server TLS certificate.
+	// If true, requests to the ACME server will not have the TLS certificate chain
+	// validated.
+	// Mutually exclusive with CABundle; prefer using CABundle to prevent various
+	// kinds of security vulnerabilities.
 	// Only enable this option in development environments.
-	// The cert-manager system installed roots will be used to verify connections
-	// to the ACME server if this is false.
+	// If CABundle and SkipTLSVerify are unset, the system certificate bundle inside
+	// the container is used to validate the TLS connection.
 	// Defaults to false.
 	SkipTLSVerify bool
 
@@ -202,16 +212,24 @@ type ACMEChallengeSolverHTTP01Ingress struct {
 	// +optional
 	ServiceType corev1.ServiceType
 
-	// The ingress class to use when creating Ingress resources to solve ACME
-	// challenges that use this challenge solver.
-	// Only one of 'class' or 'name' may be specified.
+	// This field configures the `ingressClassName` when creating Ingress
+	// resources to solve ACME challenges that use this challenge solver. This
+	// is the recommended way of configuring the ingress class. Only one of
+	// `class`, `name` or `ingressClassName` may be specified.
+	IngressClassName *string
+
+	// This field configures the annotation `kubernetes.io/ingress.class` when
+	// creating Ingress resources to solve ACME challenges that use this
+	// challenge solver. Only one of `class`, `name` or `ingressClassName` may
+	// be specified.
 	Class *string
 
 	// The name of the ingress resource that should have ACME challenge solving
 	// routes inserted into it in order to solve HTTP01 challenges.
 	// This is typically used in conjunction with ingress controllers like
 	// ingress-gce, which maintains a 1:1 mapping between external IPs and
-	// ingress resources.
+	// ingress resources. Only one of `class`, `name` or `ingressClassName` may
+	// be specified.
 	Name string
 
 	// Optional pod template used to configure the ACME challenge solver pods
@@ -238,7 +256,7 @@ type ACMEChallengeSolverHTTP01GatewayHTTPRoute struct {
 	// cert-manager needs to know which parentRefs should be used when creating
 	// the HTTPRoute. Usually, the parentRef references a Gateway. See:
 	// https://gateway-api.sigs.k8s.io/v1alpha2/api-types/httproute/#attaching-to-gateways
-	ParentRefs []gwapi.ParentRef
+	ParentRefs []gwapi.ParentReference
 }
 
 type ACMEChallengeSolverHTTP01IngressPodTemplate struct {
@@ -282,6 +300,10 @@ type ACMEChallengeSolverHTTP01IngressPodSpec struct {
 	// If specified, the pod's service account
 	// +optional
 	ServiceAccountName string
+
+	// If specified, the pod's imagePullSecrets
+	// +optional
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 }
 
 type ACMEChallengeSolverHTTP01IngressTemplate struct {
@@ -399,12 +421,25 @@ type ACMEIssuerDNS01ProviderDigitalOcean struct {
 // ACMEIssuerDNS01ProviderRoute53 is a structure containing the Route 53
 // configuration for AWS
 type ACMEIssuerDNS01ProviderRoute53 struct {
-	// The AccessKeyID is used for authentication. If not set we fall-back to using env vars, shared credentials file or AWS Instance metadata
+	// The AccessKeyID is used for authentication.
+	// Cannot be set when SecretAccessKeyID is set.
+	// If neither the Access Key nor Key ID are set, we fall-back to using env
+	// vars, shared credentials file or AWS Instance metadata,
 	// see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
 	AccessKeyID string
 
-	// The SecretAccessKey is used for authentication. If not set we fall-back to using env vars, shared credentials file or AWS Instance metadata
-	// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
+	// The SecretAccessKey is used for authentication. If set, pull the AWS
+	// access key ID from a key within a Kubernetes Secret.
+	// Cannot be set when AccessKeyID is set.
+	// If neither the Access Key nor Key ID are set, we fall-back to using env
+	// vars, shared credentials file or AWS Instance metadata,
+	// see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
+	SecretAccessKeyID *cmmeta.SecretKeySelector
+
+	// The SecretAccessKey is used for authentication.
+	// If neither the Access Key nor Key ID are set, we fall-back to using env
+	// vars, shared credentials file or AWS Instance metadata,
+	// see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
 	SecretAccessKey cmmeta.SecretKeySelector
 
 	// Role is a Role ARN which the Route53 provider will assume using either the explicit credentials AccessKeyID/SecretAccessKey
@@ -522,4 +557,9 @@ type ACMEIssuerStatus struct {
 	// ACME account, in order to track changes made to registered account
 	// associated with the  Issuer
 	LastRegisteredEmail string
+
+	// LastPrivateKeyHash is a hash of the private key associated with the latest
+	// registered ACME account, in order to track changes made to registered account
+	// associated with the Issuer
+	LastPrivateKeyHash string
 }

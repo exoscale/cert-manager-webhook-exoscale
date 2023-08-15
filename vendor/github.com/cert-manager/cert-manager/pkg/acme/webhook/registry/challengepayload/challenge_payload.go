@@ -36,6 +36,7 @@ type REST struct {
 var _ rest.Creater = &REST{}
 var _ rest.Scoper = &REST{}
 var _ rest.GroupVersionKindProvider = &REST{}
+var _ rest.SingularNameProvider = &REST{}
 
 func NewREST(hookFn webhook.Solver) *REST {
 	return &REST{
@@ -45,6 +46,9 @@ func NewREST(hookFn webhook.Solver) *REST {
 
 func (r *REST) New() runtime.Object {
 	return &v1alpha1.ChallengePayload{}
+}
+func (r *REST) GetSingularName() string {
+	return "ChallengePayload"
 }
 
 func (r *REST) GroupVersionKind(containingGV schema.GroupVersion) schema.GroupVersionKind {
@@ -99,4 +103,11 @@ func (r *REST) callSolver(req v1alpha1.ChallengeRequest) (v1alpha1.ChallengeResp
 			// TODO: utilise Reason field etc.
 		},
 	}, nil
+}
+
+// This resource type isn't actually persisted anywhere, it is only submitted to the
+// DNS01 solver webhooks, so there's nothing to do to delete a resource/it doesn't
+// make sense in this context.
+// see: https://github.com/cert-manager/cert-manager/pull/5346#discussion_r959521656
+func (r *REST) Destroy() {
 }
