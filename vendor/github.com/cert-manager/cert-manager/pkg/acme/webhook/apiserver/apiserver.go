@@ -112,7 +112,10 @@ func (c *Config) Complete() CompletedConfig {
 	return CompletedConfig{&completedCfg}
 }
 
-// New returns a new instance of AdmissionServer from the given config.
+// New returns a new instance of apiserver from the given config. Each of the
+// configured solvers will have an API GroupVersion registered with the new
+// apiserver and will have its Initialize function passed as post-start hook
+// with the server.
 func (c completedConfig) New() (*ChallengeServer, error) {
 	genericServer, err := c.GenericConfig.New("challenge-server", genericapiserver.NewEmptyDelegate()) // completion is done in Complete, no need for a second time
 	if err != nil {
@@ -163,7 +166,7 @@ func (c completedConfig) New() (*ChallengeServer, error) {
 		apiGroupInfo.VersionedResourcesStorageMap[gvr.Version] = v1alpha1storage
 	}
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error installing APIGroup for solvers: %w", err)
 	}
 
 	for i := range c.ExtraConfig.Solvers {

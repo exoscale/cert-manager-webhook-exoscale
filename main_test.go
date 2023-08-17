@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cert-manager/cert-manager/test/acme/dns"
+	dns "github.com/cert-manager/cert-manager/test/acme"
 )
 
 var (
@@ -23,8 +23,8 @@ func TestRunsSuite(t *testing.T) {
 		dns.SetStrict(true),
 	)
 
-	//need to uncomment and  RunConformance delete runBasic and runExtended once https://github.com/cert-manager/cert-manager/pull/4835 is merged
-	//fixture.RunConformance(t)
+	// need to uncomment and  RunConformance delete runBasic and runExtended once https://github.com/cert-manager/cert-manager/pull/4835 is merged
+	// fixture.RunConformance(t)
 	fixture.RunBasic(t)
 	fixture.RunExtended(t)
 
