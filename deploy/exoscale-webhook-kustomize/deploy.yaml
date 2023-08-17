@@ -4,6 +4,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cert-manager-webhook-exoscale
+  namespace: "cert-manager"
   labels:
     app: exoscale-webhook
     chart: exoscale-webhook-0.1.0
@@ -49,7 +50,7 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: cert-manager-webhook-exoscale
-    namespace: default
+    namespace: cert-manager
 ---
 # Source: exoscale-webhook/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -77,7 +78,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: cert-manager-webhook-exoscale:secrets-reader
-  namespace: default
+  namespace: cert-manager
   labels:
     app: exoscale-webhook
     chart: exoscale-webhook-0.1.0
@@ -113,7 +114,7 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: cert-manager-webhook-exoscale
-    namespace: default
+    namespace: cert-manager
 ---
 # Source: exoscale-webhook/templates/rbac.yaml
 # Grant the webhook permission to read the secrets containing the credentials
@@ -121,7 +122,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: cert-manager-webhook-exoscale:secrets-reader
-  namespace: default
+  namespace: cert-manager
   labels:
     app: exoscale-webhook
     chart: exoscale-webhook-0.1.0
@@ -135,13 +136,14 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: cert-manager-webhook-exoscale
-    namespace: default
+    namespace: cert-manager
 ---
 # Source: exoscale-webhook/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: cert-manager-webhook-exoscale
+  namespace: "cert-manager"
   labels:
     app: exoscale-webhook
     chart: exoscale-webhook-0.1.0
@@ -163,6 +165,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cert-manager-webhook-exoscale
+  namespace: "cert-manager"
   labels:
     app: exoscale-webhook
     chart: exoscale-webhook-0.1.0
@@ -183,7 +186,7 @@ spec:
       serviceAccountName: cert-manager-webhook-exoscale
       containers:
         - name: exoscale-webhook
-          image: "exoscale/cert-manager-webhook-exoscale:0.1.0"
+          image: "exoscale/cert-manager-webhook-exoscale:dev"
           imagePullPolicy: IfNotPresent
           args:
             - --tls-cert-file=/tls/tls.crt
@@ -231,14 +234,14 @@ metadata:
     release: exoscale-webhook
     heritage: Helm
   annotations:
-    cert-manager.io/inject-ca-from: "default/cert-manager-webhook-exoscale-webhook-tls"
+    cert-manager.io/inject-ca-from: "cert-manager/cert-manager-webhook-exoscale-webhook-tls"
 spec:
   group: acme.exoscale.com
   groupPriorityMinimum: 1000
   versionPriority: 15
   service:
     name: cert-manager-webhook-exoscale
-    namespace: default
+    namespace: cert-manager
   version: v1alpha1
 ---
 # Source: exoscale-webhook/templates/pki.yaml
@@ -247,7 +250,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: cert-manager-webhook-exoscale-ca
-  namespace: "default"
+  namespace: "cert-manager"
   labels:
     app: exoscale-webhook
     chart: exoscale-webhook-0.1.0
@@ -267,7 +270,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: cert-manager-webhook-exoscale-webhook-tls
-  namespace: "default"
+  namespace: "cert-manager"
   labels:
     app: exoscale-webhook
     chart: exoscale-webhook-0.1.0
@@ -280,8 +283,8 @@ spec:
     name: cert-manager-webhook-exoscale-ca
   dnsNames:
   - cert-manager-webhook-exoscale
-  - cert-manager-webhook-exoscale.default
-  - cert-manager-webhook-exoscale.default.svc
+  - cert-manager-webhook-exoscale.cert-manager
+  - cert-manager-webhook-exoscale.cert-manager.svc
 ---
 # Source: exoscale-webhook/templates/pki.yaml
 # Create a selfsigned Issuer, in order to create a root CA certificate for
@@ -290,7 +293,7 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: cert-manager-webhook-exoscale-selfsign
-  namespace: "default"
+  namespace: "cert-manager"
   labels:
     app: exoscale-webhook
     chart: exoscale-webhook-0.1.0
@@ -305,7 +308,7 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: cert-manager-webhook-exoscale-ca
-  namespace: "default"
+  namespace: "cert-manager"
   labels:
     app: exoscale-webhook
     chart: exoscale-webhook-0.1.0
