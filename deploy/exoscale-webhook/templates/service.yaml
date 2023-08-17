@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "exoscale-webhook.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
   labels:
     app: {{ include "exoscale-webhook.name" . }}
     chart: {{ include "exoscale-webhook.chart" . }}
