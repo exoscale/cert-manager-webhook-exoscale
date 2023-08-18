@@ -17,12 +17,34 @@ Based on [Example Webhook](https://github.com/cert-manager/webhook-example).
 
 ### Installing
 
+#### With Helm
+
 Once everything is set up, install Exoscale Webhook:
 ```bash
 git clone https://github.com/exoscale/cert-manager-webhook-exoscale.git
 cd cert-manager-webhook-exoscale
 helm install exoscale-webhook ./deploy/exoscale-webhook
 ```
+
+#### With Kubectl or Kustomize
+
+The manifest is generated from Helm (`make rendered-manifest.yaml`)
+
+**Kubectl**
+```bash
+kubectl apply -f https://raw.githubusercontent.com/exoscale/cert-manager-webhook-exoscale/master/deploy/exoscale-webhook-kustomize/deploy.yaml
+```
+
+**Kustomization file**
+```yaml
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - github.com/exoscale.cert-manager-webhook-exoscale/deploy/exoscale-webhook-kustomize
+```
+
 
 ### How to use it
 
