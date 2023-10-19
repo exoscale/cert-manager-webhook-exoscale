@@ -68,6 +68,31 @@ metadata:
 type: Opaque
 ```
 
+Your Exoscale Key should have at least the following `operation` for your domain: `list-dns-domain-records`, `get-dns-domain-record`, `list-dns-domains`, `update-dns-domain-record`, `create-dns-domain-record`, `delete-dns-domain-record`
+
+Here is an example of the minimum policy required for the Exoscale Key:
+
+```json
+{
+  "default-service-strategy": "deny",
+  "services": {
+    "dns": {
+      "type": "rules",
+      "rules": [
+        {
+          "expression": "resources.dns_domain.unicode_name!=\"example.com\"",
+          "action": "deny"
+        },
+        {
+          "expression": "operationin['list-dns-domain-records','get-dns-domain-record','list-dns-domains','update-dns-domain-record','create-dns-domain-record','delete-dns-domain-record']",
+          "action": "allow"
+        }
+      ]
+    }
+  }
+}
+```
+
 And run:
 ```bash
 kubectl create -f secret.yaml
