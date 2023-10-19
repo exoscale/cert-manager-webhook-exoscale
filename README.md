@@ -142,7 +142,7 @@ spec:
   dnsNames:
   - example.com
   issuerRef:
-    name: exosacle-issuer
+    name: exoscale-issuer
   secretName: example-com-tls
 ```
 
