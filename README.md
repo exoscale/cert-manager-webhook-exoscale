@@ -82,7 +82,7 @@ Here is an example of the minimal policy required for the IAM role:
           "action": "deny"
         },
         {
-          "expression": "operation in ['list-dns-domains', 'list-dns-domain-records', 'get-dns-domain-record', 'get-operation', 'create-dns-domain-record' and 'delete-dns-domain-record']",
+          "expression": "operation in ['list-dns-domains', 'list-dns-domain-records', 'get-dns-domain-record', 'get-operation', 'create-dns-domain-record', 'delete-dns-domain-record']",
           "action": "allow"
         }
       ]
