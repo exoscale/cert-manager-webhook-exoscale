@@ -120,7 +120,7 @@ spec:
             apiKeyRef:
               key: EXOSCALE_API_KEY
               name: exoscale-secret
-            apiSecretRefRef:
+            apiSecretRef:
               key: EXOSCALE_API_SECRET
               name: exoscale-secret
 ```
