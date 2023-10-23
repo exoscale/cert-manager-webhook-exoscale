@@ -13,8 +13,6 @@ Based on [Example Webhook](https://github.com/cert-manager/webhook-example).
 - [Helm](https://helm.sh/) [installed](https://helm.sh/docs/intro/install/)
 - [cert-manager](https://cert-manager.io/docs/installation/)
 
-> Note: if you want to restrict Exoscale API access key make sure the following operations are allowed: `list-dns-domains`, `list-dns-domain-records`, `get-dns-domain-record`, `get-operation`, `create-dns-domain-record` and `delete-dns-domain-record`.
-
 ### Installing
 
 #### With Helm
@@ -68,6 +66,31 @@ metadata:
 type: Opaque
 ```
 
+The IAM role policy of your key should allow at least the following `operation`s for your domain: `list-dns-domains`, `list-dns-domain-records`, `get-dns-domain-record`, `create-dns-domain-record` and `delete-dns-domain-record`
+
+Here is an example of the minimal policy required for the IAM role:
+
+```json
+{
+  "default-service-strategy": "deny",
+  "services": {
+    "dns": {
+      "type": "rules",
+      "rules": [
+        {
+          "expression": "resources.dns_domain.unicode_name != \"example.com\"",
+          "action": "deny"
+        },
+        {
+          "expression": "operation in ['list-dns-domains', 'list-dns-domain-records', 'get-dns-domain-record', 'create-dns-domain-record', 'delete-dns-domain-record']",
+          "action": "allow"
+        }
+      ]
+    }
+  }
+}
+```
+
 And run:
 ```bash
 kubectl create -f secret.yaml
@@ -97,7 +120,7 @@ spec:
             apiKeyRef:
               key: EXOSCALE_API_KEY
               name: exoscale-secret
-            apiSecretRefRef:
+            apiSecretRef:
               key: EXOSCALE_API_SECRET
               name: exoscale-secret
 ```
@@ -117,7 +140,7 @@ spec:
   dnsNames:
   - example.com
   issuerRef:
-    name: exosacle-issuer
+    name: exoscale-issuer
   secretName: example-com-tls
 ```
 
