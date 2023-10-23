@@ -66,7 +66,7 @@ metadata:
 type: Opaque
 ```
 
-The IAM role policy of your key should allow at least the following `operation`s for your domain: `list-dns-domains`, `list-dns-domain-records`, `get-dns-domain-record`, `get-operation`, `create-dns-domain-record` and `delete-dns-domain-record`
+The IAM role policy of your key should allow at least the following `operation`s for your domain: `list-dns-domains`, `list-dns-domain-records`, `get-dns-domain-record`, `create-dns-domain-record` and `delete-dns-domain-record`
 
 Here is an example of the minimal policy required for the IAM role:
 
