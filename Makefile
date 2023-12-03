@@ -47,7 +47,6 @@ rendered-manifest.yaml:
 	helm template \
 	    exoscale-webhook \
         --set image.repository=$(IMAGE_NAME) \
-        --set image.tag=$(VERSION) \
         --namespace cert-manager \
         ${DEPLOY_DIR} > "$(OUT)/rendered-manifest.yaml"
 	cp "${OUT}/rendered-manifest.yaml" "${DEPLOY_DIR}-kustomize/deploy.yaml"
