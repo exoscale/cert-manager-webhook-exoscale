@@ -82,6 +82,14 @@ Here is an example of the minimal policy required for the IAM role:
           "action": "deny"
         },
         {
+          "expression": "parameters.has('type') && parameters.type != 'TXT'",
+          "action": "deny"
+        },
+        {
+          "expression": "resources.has('dns_domain_record') && resources.dns_domain_record.has('type') && resources.dns_domain_record.type != 'TXT'",
+          "action": "deny"
+        },
+        {
           "expression": "operation in ['list-dns-domains', 'list-dns-domain-records', 'get-dns-domain-record', 'create-dns-domain-record', 'delete-dns-domain-record']",
           "action": "allow"
         }
