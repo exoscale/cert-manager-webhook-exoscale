@@ -1,5 +1,6 @@
 ## UNRELEASED
 
+- update go dependencies (#14)
 - feat(doc): Add the minimum requirements needed for the Exoscale Key in the documentation
 (#11)
 - Add Action to do releases (#8)
