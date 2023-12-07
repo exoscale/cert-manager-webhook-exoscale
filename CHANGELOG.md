@@ -1,5 +1,6 @@
 ## UNRELEASED
 
+- update go dependencies (#14)
 - bug: TXT content must be unquoted (#13)
 - feat(doc): Add the minimum requirements needed for the Exoscale Key in the documentation
 (#11)
