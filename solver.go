@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
@@ -136,9 +137,11 @@ func (c *ExoscaleSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 
 	recordName := strings.TrimSuffix(strings.TrimSuffix(ch.ResolvedFQDN, ch.ResolvedZone), ".")
 	for _, record := range records {
+		// we must unquote TXT records as we receive "\"123d==\"" when we expect "123d=="
+		content, _ := strconv.Unquote(*record.Content)
 		if *record.Type == recordTypeTXT &&
 			*record.Name == recordName &&
-			*record.Content == ch.Key {
+			content == ch.Key {
 			return client.DeleteDNSDomainRecord(ctx, config.APIZone, *domain.ID, &record)
 		}
 	}
