@@ -20,3 +20,4 @@ _test
 dist
 release
 bin
+/go.mk
