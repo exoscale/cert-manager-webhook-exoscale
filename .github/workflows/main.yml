@@ -19,5 +19,5 @@ jobs:
         go-version: '^1.18'
     - name: Lint code
       run: |
-        git submodule update --init --recursive go.mk
+        make go.mk
         PATH=$(go env GOPATH)/bin:$PATH make lint

@@ -1,3 +1,7 @@
+## Unreleased
+
+- go.mk: remove submodule and initialize through make #15 
+
 ## 0.3.0
 
 - update go dependencies (#14)
