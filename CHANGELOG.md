@@ -1,6 +1,7 @@
 ## Unreleased
 
 - go.mk: remove submodule and initialize through make #15 
+- go.mk: lint with staticcheck #17 
 
 ## 0.3.0
 
