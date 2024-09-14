@@ -1,5 +1,6 @@
 ## Unreleased
 
+- update egoscale to v3.1.5 #20
 - go.mk: remove submodule and initialize through make #15 
 - go.mk: lint with staticcheck #17 
 - go.mk: upgrade to v2.0.3 #19 

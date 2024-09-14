@@ -13,8 +13,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	exoscale "github.com/exoscale/egoscale/v2"
-	exoapi "github.com/exoscale/egoscale/v2/api"
+	egoscale "github.com/exoscale/egoscale/v3"
+	"github.com/exoscale/egoscale/v3/credentials"
 )
 
 const providerName = "exoscale"
@@ -78,29 +78,31 @@ func (c *ExoscaleSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return fmt.Errorf("failed to initialize API client: %w", err)
 	}
 
-	ctx := exoapi.WithEndpoint(
-		context.Background(),
-		exoapi.NewReqEndpoint(config.APIEnvironment, config.APIZone),
-	)
+    ctx := context.Background()
 
-	domain, err := c.findDomain(ctx, client, config.APIZone, strings.TrimSuffix(ch.ResolvedZone, "."))
+	domain, err := c.findDomain(ctx, client, strings.TrimSuffix(ch.ResolvedZone, "."))
 	if err != nil {
 		return err
 	}
 
 	recordName := strings.TrimSuffix(strings.TrimSuffix(ch.ResolvedFQDN, ch.ResolvedZone), ".")
 	t := int64(recordTTL)
-	record := exoscale.DNSDomainRecord{
-		Name:    &recordName,
-		Type:    &recordTypeTXT,
-		TTL:     &t,
-		Content: &ch.Key,
+	recordRequest := egoscale.CreateDNSDomainRecordRequest{
+		Name:    recordName,
+		Type:    egoscale.CreateDNSDomainRecordRequestTypeTXT,
+		Ttl:     t,
+		Content: ch.Key,
 	}
 
-	_, err = client.CreateDNSDomainRecord(ctx, config.APIZone, *domain.ID, &record)
-	if err != nil {
-		return fmt.Errorf("failed to create domain record: %w", err)
-	}
+    op, err := client.CreateDNSDomainRecord(ctx, domain.ID, recordRequest)
+    if err != nil {
+        return fmt.Errorf("exoscale: error while creating DNS record: %w", err)
+    }
+
+    _, err = client.Wait(ctx, op, egoscale.OperationStateSuccess)
+    if err != nil {
+        return fmt.Errorf("exoscale: error while waiting for DNS record creation: %w", err)
+    }
 
 	return nil
 }
@@ -120,29 +122,37 @@ func (c *ExoscaleSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return fmt.Errorf("failed to initialize API client: %w", err)
 	}
 
-	ctx := exoapi.WithEndpoint(
-		context.Background(),
-		exoapi.NewReqEndpoint(config.APIEnvironment, config.APIZone),
-	)
+    ctx := context.Background()
 
-	domain, err := c.findDomain(ctx, client, config.APIZone, strings.TrimSuffix(ch.ResolvedZone, "."))
+	domain, err := c.findDomain(ctx, client, strings.TrimSuffix(ch.ResolvedZone, "."))
 	if err != nil {
 		return err
 	}
 
-	records, err := client.ListDNSDomainRecords(ctx, config.APIZone, *domain.ID)
+	records, err := client.ListDNSDomainRecords(ctx, domain.ID)
 	if err != nil {
 		return err
 	}
 
 	recordName := strings.TrimSuffix(strings.TrimSuffix(ch.ResolvedFQDN, ch.ResolvedZone), ".")
-	for _, record := range records {
+	for _, record := range records.DNSDomainRecords {
 		// we must unquote TXT records as we receive "\"123d==\"" when we expect "123d=="
-		content, _ := strconv.Unquote(*record.Content)
-		if *record.Type == recordTypeTXT &&
-			*record.Name == recordName &&
+		content, _ := strconv.Unquote(record.Content)
+		if record.Type == egoscale.DNSDomainRecordTypeTXT &&
+			record.Name == recordName &&
 			content == ch.Key {
-			return client.DeleteDNSDomainRecord(ctx, config.APIZone, *domain.ID, &record)
+
+			op, err := client.DeleteDNSDomainRecord(ctx, domain.ID, record.ID)
+			if err != nil {
+                return fmt.Errorf("exoscale: error while deleting DNS record: %w", err)
+            }
+
+            _, err = client.Wait(ctx, op, egoscale.OperationStateSuccess)
+            if err != nil {
+                return fmt.Errorf("exoscale: error while waiting DNS record deletion: %w", err)
+            }
+
+            break
 		}
 	}
 
@@ -156,17 +166,16 @@ func (c *ExoscaleSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 // Returns error if domain is not found.
 func (c *ExoscaleSolver) findDomain(
 	ctx context.Context,
-	client *exoscale.Client,
-	apiZone string,
+	client *egoscale.Client,
 	domainName string,
-) (*exoscale.DNSDomain, error) {
-	domains, err := client.ListDNSDomains(ctx, apiZone)
+) (*egoscale.DNSDomain, error) {
+	domains, err := client.ListDNSDomains(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving domain list: %w", err)
+		return nil, fmt.Errorf("error while retrieving DNS domain list: %w", err)
 	}
 
-	for _, domain := range domains {
-		if *domain.UnicodeName == domainName {
+	for _, domain := range domains.DNSDomains {
+		if domain.UnicodeName == domainName {
 			return &domain, nil
 		}
 	}
@@ -176,8 +185,10 @@ func (c *ExoscaleSolver) findDomain(
 
 // apiClient is a helper that initializes Egoscale (Exoscale API) client.
 // Resolves any configuration overrides from environment.
-func (c *ExoscaleSolver) apiClient(ch *v1alpha1.ChallengeRequest, config Config) (*exoscale.Client, error) {
+func (c *ExoscaleSolver) apiClient(ch *v1alpha1.ChallengeRequest, config Config) (*egoscale.Client, error) {
 	var apiKey, apiSecret string
+
+	var opts []egoscale.ClientOpt
 
 	switch {
 	case os.Getenv(envAPIKey) != "" && os.Getenv(envAPISecret) != "":
@@ -220,15 +231,17 @@ func (c *ExoscaleSolver) apiClient(ch *v1alpha1.ChallengeRequest, config Config)
 		return nil, errors.New("client credentials not found")
 	}
 
-	return exoscale.NewClient(
-		apiKey,
-		apiSecret,
-		// API trace mode can be set only through environment.
-		exoscale.ClientOptCond(func() bool {
-			if v := os.Getenv(envTrace); v != "" {
-				return true
-			}
-			return false
-		}, exoscale.ClientOptWithTrace()),
+    // Add User-Agent
+    opts = append(opts, egoscale.ClientOptWithUserAgent("cert-manager-webhook/exoscale"))
+
+    // Check the TRACE environment variable
+    // API trace mode can be set only through environment.
+    if v := os.Getenv(envTrace); v != "" {
+		opts = append(opts, egoscale.ClientOptWithTrace())
+    }
+
+	return egoscale.NewClient(
+        credentials.NewStaticCredentials(apiKey, apiSecret),
+		opts...,
 	)
 }
