@@ -7,6 +7,27 @@ on:
       - 'v[0-9]+\.[0-9]+\.[0-9]+'
 
 jobs:
+  chart-releaser:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        with:
+          charts_dir: deploy/exoscale-webhook
+
   goreleaser:
     runs-on: ubuntu-latest
 
@@ -20,16 +41,6 @@ jobs:
 
       - run: make go.mk
         shell: bash
-
-      - name: Import GPG key
-        # This is a third-party GitHub action and we trust it with our GPG key.
-        # To be on the safer side, we should always pin to the commit SHA.
-        # It's not a perfect mitigation, but we should always do some due diligence before upgrading.
-        # The author seems trustworthy, as the author is part of the docker and goreleaser organizations on GitHub.
-        uses: crazy-max/ghaction-import-gpg@72b6676b71ab476b77e676928516f6982eef7a41
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - uses: ./go.mk/.github/actions/release
         with:
