@@ -20,7 +20,7 @@ import (
 const providerName = "exoscale"
 
 var (
-	recordTTL     = 60
+	recordTTL = 60
 )
 
 // ExoscaleSolver implements the `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver`
@@ -231,7 +231,7 @@ func (c *ExoscaleSolver) apiClient(ch *v1alpha1.ChallengeRequest, config Config)
 	}
 
 	// Add User-Agent
-	opts = append(opts, egoscale.ClientOptWithUserAgent("cert-manager-webhook/exoscale"))
+	opts = append(opts, egoscale.ClientOptWithUserAgent("cert-manager-webhook-exoscale/"+Version))
 
 	// Check the TRACE environment variable
 	// API trace mode can be set only through environment.
