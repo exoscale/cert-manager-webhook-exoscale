@@ -1,6 +1,10 @@
 ## Unreleased
 
-- migrate to egoscale v3 #20
+- Migrate to egoscale v3 (v3.1.20) #22
+- Update Docker build image to `golang:1.24-alpine` #22
+- Update Docker base image to `alpine:3.21` #22
+- Standardized UserAgent #22
+- Update `.goreleaser.yaml` with latest recommendations #22
 - go.mk: remove submodule and initialize through make #15 
 - go.mk: lint with staticcheck #17 
 - go.mk: upgrade to v2.0.3 #19 
