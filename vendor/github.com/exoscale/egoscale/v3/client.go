@@ -57,14 +57,14 @@ func (c Client) GetZoneAPIEndpoint(ctx context.Context, zoneName ZoneName) (Endp
 
 // Client represents an Exoscale API client.
 type Client struct {
-	apiKey          string
-	apiSecret       string
-	userAgent       string
-	serverEndpoint  string
-	httpClient      *http.Client
-	pollingInterval time.Duration
-	validate        *validator.Validate
-	trace           bool
+	apiKey         string
+	apiSecret      string
+	userAgent      string
+	serverEndpoint string
+	httpClient     *http.Client
+	waitTimeout    time.Duration
+	validate       *validator.Validate
+	trace          bool
 
 	// A list of callbacks for modifying requests which are generated before sending over
 	// the network.
@@ -76,8 +76,6 @@ type RequestInterceptorFn func(ctx context.Context, req *http.Request) error
 
 // Deprecated: use ClientOptWithUserAgent instead.
 var UserAgent = getDefaultUserAgent()
-
-const pollingInterval = 3 * time.Second
 
 // ClientOpt represents a function setting Exoscale API client option.
 type ClientOpt func(*Client) error
@@ -110,6 +108,14 @@ func ClientOptWithValidator(validate *validator.Validate) ClientOpt {
 func ClientOptWithEndpoint(endpoint Endpoint) ClientOpt {
 	return func(c *Client) error {
 		c.serverEndpoint = string(endpoint)
+		return nil
+	}
+}
+
+// ClientOptWithWaitTimeout returns a ClientOpt With a given wait timeout.
+func ClientOptWithWaitTimeout(t time.Duration) ClientOpt {
+	return func(c *Client) error {
+		c.waitTimeout = t
 		return nil
 	}
 }
@@ -153,13 +159,12 @@ func NewClient(credentials *credentials.Credentials, opts ...ClientOpt) (*Client
 	}
 
 	client := &Client{
-		apiKey:          values.APIKey,
-		apiSecret:       values.APISecret,
-		serverEndpoint:  string(CHGva2),
-		httpClient:      http.DefaultClient,
-		pollingInterval: pollingInterval,
-		validate:        validator.New(),
-		userAgent:       getDefaultUserAgent(),
+		apiKey:         values.APIKey,
+		apiSecret:      values.APISecret,
+		serverEndpoint: string(CHGva2),
+		httpClient:     http.DefaultClient,
+		validate:       validator.New(),
+		userAgent:      getDefaultUserAgent(),
 	}
 
 	for _, opt := range opts {
@@ -195,6 +200,15 @@ func (c *Client) WithEndpoint(endpoint Endpoint) *Client {
 	return clone
 }
 
+// WithWaitTimeout returns a copy of Client with new wait timeout.
+func (c *Client) WithWaitTimeout(t time.Duration) *Client {
+	clone := cloneClient(c)
+
+	clone.waitTimeout = t
+
+	return clone
+}
+
 // WithUserAgent returns a copy of Client with new User-Agent.
 func (c *Client) WithUserAgent(ua string) *Client {
 	clone := cloneClient(c)
@@ -214,7 +228,17 @@ func (c *Client) WithTrace() *Client {
 }
 
 // WithHttpClient returns a copy of Client with new http.Client.
+// Deprecated: use WithHTTPClient instead.
 func (c *Client) WithHttpClient(client *http.Client) *Client {
+	clone := cloneClient(c)
+
+	clone.httpClient = client
+
+	return clone
+}
+
+// WithHTTPClient returns a copy of Client with new http.Client.
+func (c *Client) WithHTTPClient(client *http.Client) *Client {
 	clone := cloneClient(c)
 
 	clone.httpClient = client
@@ -249,7 +273,7 @@ func cloneClient(c *Client) *Client {
 		serverEndpoint:      c.serverEndpoint,
 		httpClient:          c.httpClient,
 		requestInterceptors: c.requestInterceptors,
-		pollingInterval:     c.pollingInterval,
+		waitTimeout:         c.waitTimeout,
 		trace:               c.trace,
 		validate:            c.validate,
 	}

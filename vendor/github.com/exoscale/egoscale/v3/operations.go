@@ -18,10 +18,18 @@ type ListAntiAffinityGroupsResponse struct {
 
 // FindAntiAffinityGroup attempts to find an AntiAffinityGroup by nameOrID.
 func (l ListAntiAffinityGroupsResponse) FindAntiAffinityGroup(nameOrID string) (AntiAffinityGroup, error) {
+	var result []AntiAffinityGroup
 	for i, elem := range l.AntiAffinityGroups {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.AntiAffinityGroups[i], nil
+			result = append(result, l.AntiAffinityGroups[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return AntiAffinityGroup{}, fmt.Errorf("%q too many found in ListAntiAffinityGroupsResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return AntiAffinityGroup{}, fmt.Errorf("%q not found in ListAntiAffinityGroupsResponse: %w", nameOrID, ErrNotFound)
@@ -223,10 +231,18 @@ type ListAPIKeysResponse struct {
 
 // FindIAMAPIKey attempts to find an IAMAPIKey by nameOrKey.
 func (l ListAPIKeysResponse) FindIAMAPIKey(nameOrKey string) (IAMAPIKey, error) {
+	var result []IAMAPIKey
 	for i, elem := range l.APIKeys {
 		if string(elem.Name) == nameOrKey || string(elem.Key) == nameOrKey {
-			return l.APIKeys[i], nil
+			result = append(result, l.APIKeys[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return IAMAPIKey{}, fmt.Errorf("%q too many found in ListAPIKeysResponse: %w", nameOrKey, ErrConflict)
 	}
 
 	return IAMAPIKey{}, fmt.Errorf("%q not found in ListAPIKeysResponse: %w", nameOrKey, ErrNotFound)
@@ -428,10 +444,18 @@ type ListBlockStorageVolumesResponse struct {
 
 // FindBlockStorageVolume attempts to find an BlockStorageVolume by nameOrID.
 func (l ListBlockStorageVolumesResponse) FindBlockStorageVolume(nameOrID string) (BlockStorageVolume, error) {
+	var result []BlockStorageVolume
 	for i, elem := range l.BlockStorageVolumes {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.BlockStorageVolumes[i], nil
+			result = append(result, l.BlockStorageVolumes[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return BlockStorageVolume{}, fmt.Errorf("%q too many found in ListBlockStorageVolumesResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return BlockStorageVolume{}, fmt.Errorf("%q not found in ListBlockStorageVolumesResponse: %w", nameOrID, ErrNotFound)
@@ -441,7 +465,7 @@ type ListBlockStorageVolumesOpt func(url.Values)
 
 func ListBlockStorageVolumesWithInstanceID(instanceID UUID) ListBlockStorageVolumesOpt {
 	return func(q url.Values) {
-		q.Add("instanceID", fmt.Sprint(instanceID))
+		q.Add("instance-id", fmt.Sprint(instanceID))
 	}
 }
 
@@ -505,7 +529,7 @@ type CreateBlockStorageVolumeRequest struct {
 	Name string `json:"name,omitempty" validate:"omitempty,lte=255"`
 	// Volume size in GiB.
 	// When a snapshot ID is supplied, this defaults to the size of the source volume, but can be set to a larger value.
-	Size int64 `json:"size,omitempty" validate:"omitempty,gte=10"`
+	Size int64 `json:"size,omitempty" validate:"omitempty,gte=1"`
 }
 
 // Create a block storage volume
@@ -565,10 +589,18 @@ type ListBlockStorageSnapshotsResponse struct {
 
 // FindBlockStorageSnapshot attempts to find an BlockStorageSnapshot by nameOrID.
 func (l ListBlockStorageSnapshotsResponse) FindBlockStorageSnapshot(nameOrID string) (BlockStorageSnapshot, error) {
+	var result []BlockStorageSnapshot
 	for i, elem := range l.BlockStorageSnapshots {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.BlockStorageSnapshots[i], nil
+			result = append(result, l.BlockStorageSnapshots[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return BlockStorageSnapshot{}, fmt.Errorf("%q too many found in ListBlockStorageSnapshotsResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return BlockStorageSnapshot{}, fmt.Errorf("%q not found in ListBlockStorageSnapshotsResponse: %w", nameOrID, ErrNotFound)
@@ -1067,7 +1099,7 @@ func (c Client) DetachBlockStorageVolume(ctx context.Context, id UUID) (*Operati
 
 type ResizeBlockStorageVolumeRequest struct {
 	// Volume size in GiB
-	Size int64 `json:"size" validate:"required,gte=11"`
+	Size int64 `json:"size" validate:"required,gte=0"`
 }
 
 // This operation resizes a Block storage volume. Note: the volume can only grow, cannot be shrunk.
@@ -1220,8 +1252,8 @@ func (c Client) GetDBAASCACertificate(ctx context.Context) (*GetDBAASCACertifica
 }
 
 // [BETA] Delete DataDog external integration endpoint
-func (c Client) DeleteDBAASExternalEndpointDatadog(ctx context.Context, id UUID) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-datadog/%v", id)
+func (c Client) DeleteDBAASExternalEndpointDatadog(ctx context.Context, endpointID UUID) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-datadog/%v", endpointID)
 
 	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
 	if err != nil {
@@ -1264,8 +1296,8 @@ func (c Client) DeleteDBAASExternalEndpointDatadog(ctx context.Context, id UUID)
 }
 
 // [BETA] Get DataDog external endpoint settings
-func (c Client) GetDBAASExternalEndpointDatadog(ctx context.Context, id UUID) (*DBAASExternalEndpointDatadogOutput, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-datadog/%v", id)
+func (c Client) GetDBAASExternalEndpointDatadog(ctx context.Context, endpointID UUID) (*DBAASExternalEndpointDatadogOutput, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-datadog/%v", endpointID)
 
 	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
 	if err != nil {
@@ -1307,13 +1339,9 @@ func (c Client) GetDBAASExternalEndpointDatadog(ctx context.Context, id UUID) (*
 	return bodyresp, nil
 }
 
-type UpdateDBAASExternalEndpointDatadogRequest struct {
-	Settings *DBAASEndpointDatadog `json:"settings,omitempty"`
-}
-
 // [BETA] Update DataDog external integration endpoint
-func (c Client) UpdateDBAASExternalEndpointDatadog(ctx context.Context, id UUID, req UpdateDBAASExternalEndpointDatadogRequest) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-datadog/%v", id)
+func (c Client) UpdateDBAASExternalEndpointDatadog(ctx context.Context, endpointID UUID, req DBAASEndpointDatadogInputUpdate) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-datadog/%v", endpointID)
 
 	body, err := prepareJSONBody(req)
 	if err != nil {
@@ -1362,12 +1390,8 @@ func (c Client) UpdateDBAASExternalEndpointDatadog(ctx context.Context, id UUID,
 	return bodyresp, nil
 }
 
-type CreateDBAASExternalEndpointDatadogRequest struct {
-	Settings *DBAASEndpointDatadog `json:"settings,omitempty"`
-}
-
 // [BETA] Create DataDog external integration endpoint
-func (c Client) CreateDBAASExternalEndpointDatadog(ctx context.Context, name string, req CreateDBAASExternalEndpointDatadogRequest) (*Operation, error) {
+func (c Client) CreateDBAASExternalEndpointDatadog(ctx context.Context, name string, req DBAASEndpointDatadogInputCreate) (*Operation, error) {
 	path := fmt.Sprintf("/dbaas-external-endpoint-datadog/%v", name)
 
 	body, err := prepareJSONBody(req)
@@ -1418,8 +1442,8 @@ func (c Client) CreateDBAASExternalEndpointDatadog(ctx context.Context, name str
 }
 
 // [BETA] Delete ElasticSearch logs external integration endpoint
-func (c Client) DeleteDBAASExternalEndpointElasticsearch(ctx context.Context, id UUID) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-elasticsearch/%v", id)
+func (c Client) DeleteDBAASExternalEndpointElasticsearch(ctx context.Context, endpointID UUID) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-elasticsearch/%v", endpointID)
 
 	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
 	if err != nil {
@@ -1462,8 +1486,8 @@ func (c Client) DeleteDBAASExternalEndpointElasticsearch(ctx context.Context, id
 }
 
 // [BETA] Get ElasticSearch Logs external integration endpoint settings
-func (c Client) GetDBAASExternalEndpointElasticsearch(ctx context.Context, id UUID) (*DBAASEndpointElasticsearchOutput, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-elasticsearch/%v", id)
+func (c Client) GetDBAASExternalEndpointElasticsearch(ctx context.Context, endpointID UUID) (*DBAASEndpointElasticsearchOutput, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-elasticsearch/%v", endpointID)
 
 	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
 	if err != nil {
@@ -1505,13 +1529,9 @@ func (c Client) GetDBAASExternalEndpointElasticsearch(ctx context.Context, id UU
 	return bodyresp, nil
 }
 
-type UpdateDBAASExternalEndpointElasticsearchRequest struct {
-	Settings *DBAASEndpointElasticsearch `json:"settings,omitempty"`
-}
-
 // [BETA] Update ElasticSearch Logs external integration endpoint
-func (c Client) UpdateDBAASExternalEndpointElasticsearch(ctx context.Context, id UUID, req UpdateDBAASExternalEndpointElasticsearchRequest) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-elasticsearch/%v", id)
+func (c Client) UpdateDBAASExternalEndpointElasticsearch(ctx context.Context, endpointID UUID, req DBAASEndpointElasticsearchInputUpdate) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-elasticsearch/%v", endpointID)
 
 	body, err := prepareJSONBody(req)
 	if err != nil {
@@ -1560,12 +1580,8 @@ func (c Client) UpdateDBAASExternalEndpointElasticsearch(ctx context.Context, id
 	return bodyresp, nil
 }
 
-type CreateDBAASExternalEndpointElasticsearchRequest struct {
-	Settings *DBAASEndpointElasticsearch `json:"settings,omitempty"`
-}
-
 // [BETA] Create ElasticSearch Logs external integration endpoint
-func (c Client) CreateDBAASExternalEndpointElasticsearch(ctx context.Context, name string, req CreateDBAASExternalEndpointElasticsearchRequest) (*Operation, error) {
+func (c Client) CreateDBAASExternalEndpointElasticsearch(ctx context.Context, name string, req DBAASEndpointElasticsearchInputCreate) (*Operation, error) {
 	path := fmt.Sprintf("/dbaas-external-endpoint-elasticsearch/%v", name)
 
 	body, err := prepareJSONBody(req)
@@ -1616,8 +1632,8 @@ func (c Client) CreateDBAASExternalEndpointElasticsearch(ctx context.Context, na
 }
 
 // [BETA] Delete OpenSearch logs external integration endpoint
-func (c Client) DeleteDBAASExternalEndpointOpensearch(ctx context.Context, id UUID) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-opensearch/%v", id)
+func (c Client) DeleteDBAASExternalEndpointOpensearch(ctx context.Context, endpointID UUID) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-opensearch/%v", endpointID)
 
 	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
 	if err != nil {
@@ -1660,8 +1676,8 @@ func (c Client) DeleteDBAASExternalEndpointOpensearch(ctx context.Context, id UU
 }
 
 // [BETA] Get OpenSearch Logs external integration endpoint settings
-func (c Client) GetDBAASExternalEndpointOpensearch(ctx context.Context, id UUID) (*DBAASEndpointOpensearchOutput, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-opensearch/%v", id)
+func (c Client) GetDBAASExternalEndpointOpensearch(ctx context.Context, endpointID UUID) (*DBAASEndpointOpensearchOutput, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-opensearch/%v", endpointID)
 
 	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
 	if err != nil {
@@ -1703,13 +1719,9 @@ func (c Client) GetDBAASExternalEndpointOpensearch(ctx context.Context, id UUID)
 	return bodyresp, nil
 }
 
-type UpdateDBAASExternalEndpointOpensearchRequest struct {
-	Settings *DBAASEndpointOpensearch `json:"settings,omitempty"`
-}
-
 // [BETA] Update OpenSearch Logs external integration endpoint
-func (c Client) UpdateDBAASExternalEndpointOpensearch(ctx context.Context, id UUID, req UpdateDBAASExternalEndpointOpensearchRequest) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-opensearch/%v", id)
+func (c Client) UpdateDBAASExternalEndpointOpensearch(ctx context.Context, endpointID UUID, req DBAASEndpointOpensearchInputUpdate) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-opensearch/%v", endpointID)
 
 	body, err := prepareJSONBody(req)
 	if err != nil {
@@ -1758,12 +1770,8 @@ func (c Client) UpdateDBAASExternalEndpointOpensearch(ctx context.Context, id UU
 	return bodyresp, nil
 }
 
-type CreateDBAASExternalEndpointOpensearchRequest struct {
-	Settings *DBAASEndpointOpensearch `json:"settings,omitempty"`
-}
-
 // [BETA] Create OpenSearch Logs external integration endpoint
-func (c Client) CreateDBAASExternalEndpointOpensearch(ctx context.Context, name string, req CreateDBAASExternalEndpointOpensearchRequest) (*Operation, error) {
+func (c Client) CreateDBAASExternalEndpointOpensearch(ctx context.Context, name string, req DBAASEndpointOpensearchInputCreate) (*Operation, error) {
 	path := fmt.Sprintf("/dbaas-external-endpoint-opensearch/%v", name)
 
 	body, err := prepareJSONBody(req)
@@ -1814,8 +1822,8 @@ func (c Client) CreateDBAASExternalEndpointOpensearch(ctx context.Context, name 
 }
 
 // [BETA] Delete Prometheus external integration endpoint
-func (c Client) DeleteDBAASExternalEndpointPrometheus(ctx context.Context, id UUID) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-prometheus/%v", id)
+func (c Client) DeleteDBAASExternalEndpointPrometheus(ctx context.Context, endpointID UUID) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-prometheus/%v", endpointID)
 
 	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
 	if err != nil {
@@ -1858,8 +1866,8 @@ func (c Client) DeleteDBAASExternalEndpointPrometheus(ctx context.Context, id UU
 }
 
 // [BETA] Get Prometheus external integration endpoint settings
-func (c Client) GetDBAASExternalEndpointPrometheus(ctx context.Context, id UUID) (*DBAASEndpointExternalPrometheusOutput, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-prometheus/%v", id)
+func (c Client) GetDBAASExternalEndpointPrometheus(ctx context.Context, endpointID UUID) (*DBAASEndpointExternalPrometheusOutput, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-prometheus/%v", endpointID)
 
 	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
 	if err != nil {
@@ -1901,13 +1909,9 @@ func (c Client) GetDBAASExternalEndpointPrometheus(ctx context.Context, id UUID)
 	return bodyresp, nil
 }
 
-type UpdateDBAASExternalEndpointPrometheusRequest struct {
-	Settings *DBAASEndpointPrometheus `json:"settings,omitempty"`
-}
-
 // [BETA] Update Prometheus external integration endpoint
-func (c Client) UpdateDBAASExternalEndpointPrometheus(ctx context.Context, id UUID, req UpdateDBAASExternalEndpointPrometheusRequest) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-prometheus/%v", id)
+func (c Client) UpdateDBAASExternalEndpointPrometheus(ctx context.Context, endpointID UUID, req DBAASEndpointPrometheusPayload) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-prometheus/%v", endpointID)
 
 	body, err := prepareJSONBody(req)
 	if err != nil {
@@ -1956,12 +1960,8 @@ func (c Client) UpdateDBAASExternalEndpointPrometheus(ctx context.Context, id UU
 	return bodyresp, nil
 }
 
-type CreateDBAASExternalEndpointPrometheusRequest struct {
-	Settings *DBAASEndpointPrometheus `json:"settings,omitempty"`
-}
-
 // [BETA] Create Prometheus external integration endpoint
-func (c Client) CreateDBAASExternalEndpointPrometheus(ctx context.Context, name string, req CreateDBAASExternalEndpointPrometheusRequest) (*Operation, error) {
+func (c Client) CreateDBAASExternalEndpointPrometheus(ctx context.Context, name string, req DBAASEndpointPrometheusPayload) (*Operation, error) {
 	path := fmt.Sprintf("/dbaas-external-endpoint-prometheus/%v", name)
 
 	body, err := prepareJSONBody(req)
@@ -2012,8 +2012,8 @@ func (c Client) CreateDBAASExternalEndpointPrometheus(ctx context.Context, name 
 }
 
 // [BETA] Delete RSyslog external integration endpoint
-func (c Client) DeleteDBAASExternalEndpointRsyslog(ctx context.Context, id UUID) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-rsyslog/%v", id)
+func (c Client) DeleteDBAASExternalEndpointRsyslog(ctx context.Context, endpointID UUID) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-rsyslog/%v", endpointID)
 
 	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
 	if err != nil {
@@ -2056,8 +2056,8 @@ func (c Client) DeleteDBAASExternalEndpointRsyslog(ctx context.Context, id UUID)
 }
 
 // [BETA] Get RSyslog external integration endpoint settings
-func (c Client) GetDBAASExternalEndpointRsyslog(ctx context.Context, id UUID) (*DBAASExternalEndpointRsyslogOutput, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-rsyslog/%v", id)
+func (c Client) GetDBAASExternalEndpointRsyslog(ctx context.Context, endpointID UUID) (*DBAASExternalEndpointRsyslogOutput, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-rsyslog/%v", endpointID)
 
 	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
 	if err != nil {
@@ -2099,13 +2099,9 @@ func (c Client) GetDBAASExternalEndpointRsyslog(ctx context.Context, id UUID) (*
 	return bodyresp, nil
 }
 
-type UpdateDBAASExternalEndpointRsyslogRequest struct {
-	Settings *DBAASEndpointRsyslog `json:"settings,omitempty"`
-}
-
 // [BETA] Update RSyslog external integration endpoint
-func (c Client) UpdateDBAASExternalEndpointRsyslog(ctx context.Context, id UUID, req UpdateDBAASExternalEndpointRsyslogRequest) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-external-endpoint-rsyslog/%v", id)
+func (c Client) UpdateDBAASExternalEndpointRsyslog(ctx context.Context, endpointID UUID, req DBAASEndpointRsyslogInputUpdate) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-external-endpoint-rsyslog/%v", endpointID)
 
 	body, err := prepareJSONBody(req)
 	if err != nil {
@@ -2154,12 +2150,8 @@ func (c Client) UpdateDBAASExternalEndpointRsyslog(ctx context.Context, id UUID,
 	return bodyresp, nil
 }
 
-type CreateDBAASExternalEndpointRsyslogRequest struct {
-	Settings *DBAASEndpointRsyslog `json:"settings,omitempty"`
-}
-
 // [BETA] Create RSyslog external integration endpoint
-func (c Client) CreateDBAASExternalEndpointRsyslog(ctx context.Context, name string, req CreateDBAASExternalEndpointRsyslogRequest) (*Operation, error) {
+func (c Client) CreateDBAASExternalEndpointRsyslog(ctx context.Context, name string, req DBAASEndpointRsyslogInputCreate) (*Operation, error) {
 	path := fmt.Sprintf("/dbaas-external-endpoint-rsyslog/%v", name)
 
 	body, err := prepareJSONBody(req)
@@ -2382,10 +2374,18 @@ type ListDBAASExternalEndpointsResponse struct {
 
 // FindDBAASExternalEndpoint attempts to find an DBAASExternalEndpoint by nameOrID.
 func (l ListDBAASExternalEndpointsResponse) FindDBAASExternalEndpoint(nameOrID string) (DBAASExternalEndpoint, error) {
+	var result []DBAASExternalEndpoint
 	for i, elem := range l.DBAASEndpoints {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.DBAASEndpoints[i], nil
+			result = append(result, l.DBAASEndpoints[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return DBAASExternalEndpoint{}, fmt.Errorf("%q too many found in ListDBAASExternalEndpointsResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return DBAASExternalEndpoint{}, fmt.Errorf("%q not found in ListDBAASExternalEndpointsResponse: %w", nameOrID, ErrNotFound)
@@ -2539,8 +2539,8 @@ func (c Client) UpdateDBAASExternalIntegrationSettingsDatadog(ctx context.Contex
 }
 
 // [BETA] Get a DBaaS external integration
-func (c Client) GetDBAASExternalIntegration(ctx context.Context, id UUID) (*DBAASExternalIntegration, error) {
-	path := fmt.Sprintf("/dbaas-external-integration/%v", id)
+func (c Client) GetDBAASExternalIntegration(ctx context.Context, integrationID UUID) (*DBAASExternalIntegration, error) {
+	path := fmt.Sprintf("/dbaas-external-integration/%v", integrationID)
 
 	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
 	if err != nil {
@@ -2584,17 +2584,6 @@ func (c Client) GetDBAASExternalIntegration(ctx context.Context, id UUID) (*DBAA
 
 type ListDBAASExternalIntegrationsResponse struct {
 	ExternalIntegrations []DBAASExternalIntegration `json:"external-integrations,omitempty"`
-}
-
-// FindDBAASExternalIntegration attempts to find an DBAASExternalIntegration by id.
-func (l ListDBAASExternalIntegrationsResponse) FindDBAASExternalIntegration(id string) (DBAASExternalIntegration, error) {
-	for i, elem := range l.ExternalIntegrations {
-		if string(elem.ID) == id {
-			return l.ExternalIntegrations[i], nil
-		}
-	}
-
-	return DBAASExternalIntegration{}, fmt.Errorf("%q not found in ListDBAASExternalIntegrationsResponse: %w", id, ErrNotFound)
 }
 
 // [BETA] List all DBaaS connections between services and external endpoints
@@ -3476,13 +3465,13 @@ type CreateDBAASServiceKafkaRequest struct {
 	// Allow clients to connect to kafka_connect from the public internet for service nodes that are in a project VPC or another type of private network
 	KafkaConnectEnabled *bool `json:"kafka-connect-enabled,omitempty"`
 	// Kafka Connect configuration values
-	KafkaConnectSettings JSONSchemaKafkaConnect `json:"kafka-connect-settings,omitempty"`
+	KafkaConnectSettings *JSONSchemaKafkaConnect `json:"kafka-connect-settings,omitempty"`
 	// Enable Kafka-REST service
 	KafkaRestEnabled *bool `json:"kafka-rest-enabled,omitempty"`
 	// Kafka REST configuration
-	KafkaRestSettings JSONSchemaKafkaRest `json:"kafka-rest-settings,omitempty"`
+	KafkaRestSettings *JSONSchemaKafkaRest `json:"kafka-rest-settings,omitempty"`
 	// Kafka broker configuration values
-	KafkaSettings JSONSchemaKafka `json:"kafka-settings,omitempty"`
+	KafkaSettings *JSONSchemaKafka `json:"kafka-settings,omitempty"`
 	// Automatic maintenance settings
 	Maintenance *CreateDBAASServiceKafkaRequestMaintenance `json:"maintenance,omitempty"`
 	// Subscription plan
@@ -3490,7 +3479,7 @@ type CreateDBAASServiceKafkaRequest struct {
 	// Enable Schema-Registry service
 	SchemaRegistryEnabled *bool `json:"schema-registry-enabled,omitempty"`
 	// Schema Registry configuration
-	SchemaRegistrySettings JSONSchemaSchemaRegistry `json:"schema-registry-settings,omitempty"`
+	SchemaRegistrySettings *JSONSchemaSchemaRegistry `json:"schema-registry-settings,omitempty"`
 	// Service is protected against termination and powering off
 	TerminationProtection *bool `json:"termination-protection,omitempty"`
 	// Kafka major version
@@ -3585,13 +3574,13 @@ type UpdateDBAASServiceKafkaRequest struct {
 	// Allow clients to connect to kafka_connect from the public internet for service nodes that are in a project VPC or another type of private network
 	KafkaConnectEnabled *bool `json:"kafka-connect-enabled,omitempty"`
 	// Kafka Connect configuration values
-	KafkaConnectSettings JSONSchemaKafkaConnect `json:"kafka-connect-settings,omitempty"`
+	KafkaConnectSettings *JSONSchemaKafkaConnect `json:"kafka-connect-settings,omitempty"`
 	// Enable Kafka-REST service
 	KafkaRestEnabled *bool `json:"kafka-rest-enabled,omitempty"`
 	// Kafka REST configuration
-	KafkaRestSettings JSONSchemaKafkaRest `json:"kafka-rest-settings,omitempty"`
+	KafkaRestSettings *JSONSchemaKafkaRest `json:"kafka-rest-settings,omitempty"`
 	// Kafka broker configuration values
-	KafkaSettings JSONSchemaKafka `json:"kafka-settings,omitempty"`
+	KafkaSettings *JSONSchemaKafka `json:"kafka-settings,omitempty"`
 	// Automatic maintenance settings
 	Maintenance *UpdateDBAASServiceKafkaRequestMaintenance `json:"maintenance,omitempty"`
 	// Subscription plan
@@ -3599,7 +3588,7 @@ type UpdateDBAASServiceKafkaRequest struct {
 	// Enable Schema-Registry service
 	SchemaRegistryEnabled *bool `json:"schema-registry-enabled,omitempty"`
 	// Schema Registry configuration
-	SchemaRegistrySettings JSONSchemaSchemaRegistry `json:"schema-registry-settings,omitempty"`
+	SchemaRegistrySettings *JSONSchemaSchemaRegistry `json:"schema-registry-settings,omitempty"`
 	// Service is protected against termination and powering off
 	TerminationProtection *bool `json:"termination-protection,omitempty"`
 	// Kafka major version
@@ -4389,7 +4378,7 @@ type CreateDBAASServiceMysqlRequest struct {
 	// Migrate data from existing server
 	Migration *CreateDBAASServiceMysqlRequestMigration `json:"migration,omitempty"`
 	// mysql.conf configuration values
-	MysqlSettings JSONSchemaMysql `json:"mysql-settings,omitempty"`
+	MysqlSettings *JSONSchemaMysql `json:"mysql-settings,omitempty"`
 	// Subscription plan
 	Plan string `json:"plan" validate:"required,gte=1,lte=128"`
 	// ISO time of a backup to recover from for services that support arbitrary times
@@ -4509,7 +4498,7 @@ type UpdateDBAASServiceMysqlRequest struct {
 	// Migrate data from existing server
 	Migration *UpdateDBAASServiceMysqlRequestMigration `json:"migration,omitempty"`
 	// mysql.conf configuration values
-	MysqlSettings JSONSchemaMysql `json:"mysql-settings,omitempty"`
+	MysqlSettings *JSONSchemaMysql `json:"mysql-settings,omitempty"`
 	// Subscription plan
 	Plan string `json:"plan,omitempty" validate:"omitempty,gte=1,lte=128"`
 	// Service is protected against termination and powering off
@@ -5160,7 +5149,7 @@ type CreateDBAASServiceOpensearchRequest struct {
 	// OpenSearch Dashboards settings
 	OpensearchDashboards *CreateDBAASServiceOpensearchRequestOpensearchDashboards `json:"opensearch-dashboards,omitempty"`
 	// OpenSearch settings
-	OpensearchSettings JSONSchemaOpensearch `json:"opensearch-settings,omitempty"`
+	OpensearchSettings *JSONSchemaOpensearch `json:"opensearch-settings,omitempty"`
 	// Subscription plan
 	Plan string `json:"plan" validate:"required,gte=1,lte=128"`
 	// Name of a backup to recover from for services that support backup names
@@ -5295,7 +5284,7 @@ type UpdateDBAASServiceOpensearchRequest struct {
 	// OpenSearch Dashboards settings
 	OpensearchDashboards *UpdateDBAASServiceOpensearchRequestOpensearchDashboards `json:"opensearch-dashboards,omitempty"`
 	// OpenSearch settings
-	OpensearchSettings JSONSchemaOpensearch `json:"opensearch-settings,omitempty"`
+	OpensearchSettings *JSONSchemaOpensearch `json:"opensearch-settings,omitempty"`
 	// Subscription plan
 	Plan string `json:"plan,omitempty" validate:"omitempty,gte=1,lte=128"`
 	// Service is protected against termination and powering off
@@ -5858,7 +5847,7 @@ type CreateDBAASServicePGRequest struct {
 	// Migrate data from existing server
 	Migration *CreateDBAASServicePGRequestMigration `json:"migration,omitempty"`
 	// postgresql.conf configuration values
-	PGSettings JSONSchemaPG `json:"pg-settings,omitempty"`
+	PGSettings *JSONSchemaPG `json:"pg-settings,omitempty"`
 	// System-wide settings for pgbouncer.
 	PgbouncerSettings *JSONSchemaPgbouncer `json:"pgbouncer-settings,omitempty"`
 	// System-wide settings for pglookout.
@@ -5987,7 +5976,7 @@ type UpdateDBAASServicePGRequest struct {
 	// Migrate data from existing server
 	Migration *UpdateDBAASServicePGRequestMigration `json:"migration,omitempty"`
 	// postgresql.conf configuration values
-	PGSettings JSONSchemaPG `json:"pg-settings,omitempty"`
+	PGSettings *JSONSchemaPG `json:"pg-settings,omitempty"`
 	// System-wide settings for pgbouncer.
 	PgbouncerSettings *JSONSchemaPgbouncer `json:"pgbouncer-settings,omitempty"`
 	// System-wide settings for pglookout.
@@ -7111,6 +7100,50 @@ func (c Client) StopDBAASRedisMigration(ctx context.Context, name string) (*Oper
 	return bodyresp, nil
 }
 
+// Initiate Redis upgrade to Valkey
+func (c Client) StartDBAASRedisToValkeyUpgrade(ctx context.Context, name string) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-redis/%v/upgrade-type", name)
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("StartDBAASRedisToValkeyUpgrade: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("StartDBAASRedisToValkeyUpgrade: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("StartDBAASRedisToValkeyUpgrade: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "start-dbaas-redis-to-valkey-upgrade")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("StartDBAASRedisToValkeyUpgrade: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("StartDBAASRedisToValkeyUpgrade: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("StartDBAASRedisToValkeyUpgrade: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
 type CreateDBAASRedisUserRequest struct {
 	Username DBAASUserUsername `json:"username" validate:"required,gte=1,lte=64"`
 }
@@ -7315,10 +7348,18 @@ type ListDBAASServicesResponse struct {
 
 // FindDBAASServiceCommon attempts to find an DBAASServiceCommon by name.
 func (l ListDBAASServicesResponse) FindDBAASServiceCommon(name string) (DBAASServiceCommon, error) {
+	var result []DBAASServiceCommon
 	for i, elem := range l.DBAASServices {
 		if string(elem.Name) == name {
-			return l.DBAASServices[i], nil
+			result = append(result, l.DBAASServices[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return DBAASServiceCommon{}, fmt.Errorf("%q too many found in ListDBAASServicesResponse: %w", name, ErrConflict)
 	}
 
 	return DBAASServiceCommon{}, fmt.Errorf("%q not found in ListDBAASServicesResponse: %w", name, ErrNotFound)
@@ -7503,10 +7544,18 @@ type ListDBAASServiceTypesResponse struct {
 
 // FindDBAASServiceType attempts to find an DBAASServiceType by name.
 func (l ListDBAASServiceTypesResponse) FindDBAASServiceType(name string) (DBAASServiceType, error) {
+	var result []DBAASServiceType
 	for i, elem := range l.DBAASServiceTypes {
 		if string(elem.Name) == name {
-			return l.DBAASServiceTypes[i], nil
+			result = append(result, l.DBAASServiceTypes[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return DBAASServiceType{}, fmt.Errorf("%q too many found in ListDBAASServiceTypesResponse: %w", name, ErrConflict)
 	}
 
 	return DBAASServiceType{}, fmt.Errorf("%q not found in ListDBAASServiceTypesResponse: %w", name, ErrNotFound)
@@ -8070,6 +8119,67 @@ func (c Client) GetDBAASSettingsRedis(ctx context.Context) (*GetDBAASSettingsRed
 	return bodyresp, nil
 }
 
+// Valkey configuration values
+type GetDBAASSettingsValkeyResponseSettingsValkey struct {
+	AdditionalProperties *bool          `json:"additionalProperties,omitempty"`
+	Properties           map[string]any `json:"properties,omitempty"`
+	Title                string         `json:"title,omitempty"`
+	Type                 string         `json:"type,omitempty"`
+}
+
+type GetDBAASSettingsValkeyResponseSettings struct {
+	// Valkey configuration values
+	Valkey *GetDBAASSettingsValkeyResponseSettingsValkey `json:"valkey,omitempty"`
+}
+
+type GetDBAASSettingsValkeyResponse struct {
+	Settings *GetDBAASSettingsValkeyResponseSettings `json:"settings,omitempty"`
+}
+
+// Returns the default settings for Valkey.
+func (c Client) GetDBAASSettingsValkey(ctx context.Context) (*GetDBAASSettingsValkeyResponse, error) {
+	path := "/dbaas-settings-valkey"
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "get-dbaas-settings-valkey")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: http response: %w", err)
+	}
+
+	bodyresp := &GetDBAASSettingsValkeyResponse{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
 type CreateDBAASTaskMigrationCheckRequest struct {
 	// Comma-separated list of databases, which should be ignored during migration (supported by MySQL only at the moment)
 	IgnoreDbs string              `json:"ignore-dbs,omitempty" validate:"omitempty,gte=1,lte=2048"`
@@ -8173,16 +8283,613 @@ func (c Client) GetDBAASTask(ctx context.Context, service string, id UUID) (*DBA
 	return bodyresp, nil
 }
 
+// Delete a Valkey service
+func (c Client) DeleteDBAASServiceValkey(ctx context.Context, name string) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v", name)
+
+	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "delete-dbaas-service-valkey")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Get a DBaaS Valkey service
+func (c Client) GetDBAASServiceValkey(ctx context.Context, name string) (*DBAASServiceValkey, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v", name)
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "get-dbaas-service-valkey")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: http response: %w", err)
+	}
+
+	bodyresp := &DBAASServiceValkey{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type CreateDBAASServiceValkeyRequestMaintenanceDow string
+
+const (
+	CreateDBAASServiceValkeyRequestMaintenanceDowSaturday  CreateDBAASServiceValkeyRequestMaintenanceDow = "saturday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowTuesday   CreateDBAASServiceValkeyRequestMaintenanceDow = "tuesday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowNever     CreateDBAASServiceValkeyRequestMaintenanceDow = "never"
+	CreateDBAASServiceValkeyRequestMaintenanceDowWednesday CreateDBAASServiceValkeyRequestMaintenanceDow = "wednesday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowSunday    CreateDBAASServiceValkeyRequestMaintenanceDow = "sunday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowFriday    CreateDBAASServiceValkeyRequestMaintenanceDow = "friday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowMonday    CreateDBAASServiceValkeyRequestMaintenanceDow = "monday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowThursday  CreateDBAASServiceValkeyRequestMaintenanceDow = "thursday"
+)
+
+// Automatic maintenance settings
+type CreateDBAASServiceValkeyRequestMaintenance struct {
+	// Day of week for installing updates
+	Dow CreateDBAASServiceValkeyRequestMaintenanceDow `json:"dow" validate:"required"`
+	// Time for installing updates, UTC
+	Time string `json:"time" validate:"required,gte=8,lte=8"`
+}
+
+// Migrate data from existing server
+type CreateDBAASServiceValkeyRequestMigration struct {
+	// Database name for bootstrapping the initial connection
+	Dbname string `json:"dbname,omitempty" validate:"omitempty,gte=1,lte=63"`
+	// Hostname or IP address of the server where to migrate data from
+	Host string `json:"host" validate:"required,gte=1,lte=255"`
+	// Comma-separated list of databases, which should be ignored during migration (supported by MySQL only at the moment)
+	IgnoreDbs string              `json:"ignore-dbs,omitempty" validate:"omitempty,gte=1,lte=2048"`
+	Method    EnumMigrationMethod `json:"method,omitempty"`
+	// Password for authentication with the server where to migrate data from
+	Password string `json:"password,omitempty" validate:"omitempty,gte=1,lte=255"`
+	// Port number of the server where to migrate data from
+	Port int64 `json:"port" validate:"required,gte=1,lte=65535"`
+	// The server where to migrate data from is secured with SSL
+	SSL *bool `json:"ssl,omitempty"`
+	// User name for authentication with the server where to migrate data from
+	Username string `json:"username,omitempty" validate:"omitempty,gte=1,lte=255"`
+}
+
+type CreateDBAASServiceValkeyRequest struct {
+	ForkFromService DBAASServiceName `json:"fork-from-service,omitempty" validate:"omitempty,gte=0,lte=63"`
+	// Allow incoming connections from CIDR address block, e.g. '10.20.0.0/16'
+	IPFilter []string `json:"ip-filter,omitempty"`
+	// Automatic maintenance settings
+	Maintenance *CreateDBAASServiceValkeyRequestMaintenance `json:"maintenance,omitempty"`
+	// Migrate data from existing server
+	Migration *CreateDBAASServiceValkeyRequestMigration `json:"migration,omitempty"`
+	// Subscription plan
+	Plan string `json:"plan" validate:"required,gte=1,lte=128"`
+	// Name of a backup to recover from for services that support backup names
+	RecoveryBackupName string `json:"recovery-backup-name,omitempty" validate:"omitempty,gte=1"`
+	// Service is protected against termination and powering off
+	TerminationProtection *bool `json:"termination-protection,omitempty"`
+	// Valkey settings
+	ValkeySettings *JSONSchemaValkey `json:"valkey-settings,omitempty"`
+}
+
+// Create a DBaaS Valkey service
+func (c Client) CreateDBAASServiceValkey(ctx context.Context, name string, req CreateDBAASServiceValkeyRequest) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v", name)
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "create-dbaas-service-valkey")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type UpdateDBAASServiceValkeyRequestMaintenanceDow string
+
+const (
+	UpdateDBAASServiceValkeyRequestMaintenanceDowSaturday  UpdateDBAASServiceValkeyRequestMaintenanceDow = "saturday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowTuesday   UpdateDBAASServiceValkeyRequestMaintenanceDow = "tuesday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowNever     UpdateDBAASServiceValkeyRequestMaintenanceDow = "never"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowWednesday UpdateDBAASServiceValkeyRequestMaintenanceDow = "wednesday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowSunday    UpdateDBAASServiceValkeyRequestMaintenanceDow = "sunday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowFriday    UpdateDBAASServiceValkeyRequestMaintenanceDow = "friday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowMonday    UpdateDBAASServiceValkeyRequestMaintenanceDow = "monday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowThursday  UpdateDBAASServiceValkeyRequestMaintenanceDow = "thursday"
+)
+
+// Automatic maintenance settings
+type UpdateDBAASServiceValkeyRequestMaintenance struct {
+	// Day of week for installing updates
+	Dow UpdateDBAASServiceValkeyRequestMaintenanceDow `json:"dow" validate:"required"`
+	// Time for installing updates, UTC
+	Time string `json:"time" validate:"required,gte=8,lte=8"`
+}
+
+// Migrate data from existing server
+type UpdateDBAASServiceValkeyRequestMigration struct {
+	// Database name for bootstrapping the initial connection
+	Dbname string `json:"dbname,omitempty" validate:"omitempty,gte=1,lte=63"`
+	// Hostname or IP address of the server where to migrate data from
+	Host string `json:"host" validate:"required,gte=1,lte=255"`
+	// Comma-separated list of databases, which should be ignored during migration (supported by MySQL only at the moment)
+	IgnoreDbs string              `json:"ignore-dbs,omitempty" validate:"omitempty,gte=1,lte=2048"`
+	Method    EnumMigrationMethod `json:"method,omitempty"`
+	// Password for authentication with the server where to migrate data from
+	Password string `json:"password,omitempty" validate:"omitempty,gte=1,lte=255"`
+	// Port number of the server where to migrate data from
+	Port int64 `json:"port" validate:"required,gte=1,lte=65535"`
+	// The server where to migrate data from is secured with SSL
+	SSL *bool `json:"ssl,omitempty"`
+	// User name for authentication with the server where to migrate data from
+	Username string `json:"username,omitempty" validate:"omitempty,gte=1,lte=255"`
+}
+
+type UpdateDBAASServiceValkeyRequest struct {
+	// Allow incoming connections from CIDR address block, e.g. '10.20.0.0/16'
+	IPFilter []string `json:"ip-filter,omitempty"`
+	// Automatic maintenance settings
+	Maintenance *UpdateDBAASServiceValkeyRequestMaintenance `json:"maintenance,omitempty"`
+	// Migrate data from existing server
+	Migration *UpdateDBAASServiceValkeyRequestMigration `json:"migration,omitempty"`
+	// Subscription plan
+	Plan string `json:"plan,omitempty" validate:"omitempty,gte=1,lte=128"`
+	// Service is protected against termination and powering off
+	TerminationProtection *bool `json:"termination-protection,omitempty"`
+	// Valkey settings
+	ValkeySettings *JSONSchemaValkey `json:"valkey-settings,omitempty"`
+}
+
+// Update a DBaaS Valkey service
+func (c Client) UpdateDBAASServiceValkey(ctx context.Context, name string, req UpdateDBAASServiceValkeyRequest) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v", name)
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "update-dbaas-service-valkey")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Initiate Valkey maintenance update
+func (c Client) StartDBAASValkeyMaintenance(ctx context.Context, name string) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/maintenance/start", name)
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "start-dbaas-valkey-maintenance")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Stop a DBaaS Valkey migration
+func (c Client) StopDBAASValkeyMigration(ctx context.Context, name string) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/migration/stop", name)
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "stop-dbaas-valkey-migration")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type CreateDBAASValkeyUserRequest struct {
+	Username DBAASUserUsername `json:"username" validate:"required,gte=1,lte=64"`
+}
+
+// Create a DBaaS Valkey user
+func (c Client) CreateDBAASValkeyUser(ctx context.Context, serviceName string, req CreateDBAASValkeyUserRequest) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/user", serviceName)
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "create-dbaas-valkey-user")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Delete a DBaaS Valkey user
+func (c Client) DeleteDBAASValkeyUser(ctx context.Context, serviceName string, username string) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/user/%v", serviceName, username)
+
+	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "delete-dbaas-valkey-user")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type ResetDBAASValkeyUserPasswordRequest struct {
+	Password DBAASUserPassword `json:"password,omitempty" validate:"omitempty,gte=8,lte=256"`
+}
+
+// If no password is provided one will be generated automatically.
+func (c Client) ResetDBAASValkeyUserPassword(ctx context.Context, serviceName string, username string, req ResetDBAASValkeyUserPasswordRequest) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/user/%v/password/reset", serviceName, username)
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "reset-dbaas-valkey-user-password")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Reveal the secrets of a DBaaS Valkey user
+func (c Client) RevealDBAASValkeyUserPassword(ctx context.Context, serviceName string, username string) (*DBAASUserValkeySecrets, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/user/%v/password/reveal", serviceName, username)
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "reveal-dbaas-valkey-user-password")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: http response: %w", err)
+	}
+
+	bodyresp := &DBAASUserValkeySecrets{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
 type ListDeployTargetsResponse struct {
 	DeployTargets []DeployTarget `json:"deploy-targets,omitempty"`
 }
 
 // FindDeployTarget attempts to find an DeployTarget by nameOrID.
 func (l ListDeployTargetsResponse) FindDeployTarget(nameOrID string) (DeployTarget, error) {
+	var result []DeployTarget
 	for i, elem := range l.DeployTargets {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.DeployTargets[i], nil
+			result = append(result, l.DeployTargets[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return DeployTarget{}, fmt.Errorf("%q too many found in ListDeployTargetsResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return DeployTarget{}, fmt.Errorf("%q not found in ListDeployTargetsResponse: %w", nameOrID, ErrNotFound)
@@ -8282,10 +8989,18 @@ type ListDNSDomainsResponse struct {
 
 // FindDNSDomain attempts to find an DNSDomain by idOrUnicodeName.
 func (l ListDNSDomainsResponse) FindDNSDomain(idOrUnicodeName string) (DNSDomain, error) {
+	var result []DNSDomain
 	for i, elem := range l.DNSDomains {
 		if string(elem.ID) == idOrUnicodeName || string(elem.UnicodeName) == idOrUnicodeName {
-			return l.DNSDomains[i], nil
+			result = append(result, l.DNSDomains[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return DNSDomain{}, fmt.Errorf("%q too many found in ListDNSDomainsResponse: %w", idOrUnicodeName, ErrConflict)
 	}
 
 	return DNSDomain{}, fmt.Errorf("%q not found in ListDNSDomainsResponse: %w", idOrUnicodeName, ErrNotFound)
@@ -8398,10 +9113,18 @@ type ListDNSDomainRecordsResponse struct {
 
 // FindDNSDomainRecord attempts to find an DNSDomainRecord by nameOrID.
 func (l ListDNSDomainRecordsResponse) FindDNSDomainRecord(nameOrID string) (DNSDomainRecord, error) {
+	var result []DNSDomainRecord
 	for i, elem := range l.DNSDomainRecords {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.DNSDomainRecords[i], nil
+			result = append(result, l.DNSDomainRecords[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return DNSDomainRecord{}, fmt.Errorf("%q too many found in ListDNSDomainRecordsResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return DNSDomainRecord{}, fmt.Errorf("%q not found in ListDNSDomainRecordsResponse: %w", nameOrID, ErrNotFound)
@@ -8827,10 +9550,18 @@ type ListElasticIPSResponse struct {
 
 // FindElasticIP attempts to find an ElasticIP by idOrIP.
 func (l ListElasticIPSResponse) FindElasticIP(idOrIP string) (ElasticIP, error) {
+	var result []ElasticIP
 	for i, elem := range l.ElasticIPS {
 		if string(elem.ID) == idOrIP || string(elem.IP) == idOrIP {
-			return l.ElasticIPS[i], nil
+			result = append(result, l.ElasticIPS[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return ElasticIP{}, fmt.Errorf("%q too many found in ListElasticIPSResponse: %w", idOrIP, ErrConflict)
 	}
 
 	return ElasticIP{}, fmt.Errorf("%q not found in ListElasticIPSResponse: %w", idOrIP, ErrNotFound)
@@ -9257,6 +9988,81 @@ func (c Client) DetachInstanceFromElasticIP(ctx context.Context, id UUID, req De
 	return bodyresp, nil
 }
 
+type GetEnvImpactResponseEnvImpactTotal struct {
+	// Impact Amount
+	Amount float64 `json:"amount,omitempty"`
+	// Impact Unit
+	Unit string `json:"unit,omitempty"`
+}
+
+type GetEnvImpactResponseEnvImpact struct {
+	Total *GetEnvImpactResponseEnvImpactTotal `json:"total,omitempty"`
+}
+
+type GetEnvImpactResponse struct {
+	EnvImpact map[string]GetEnvImpactResponseEnvImpact `json:"env_impact,omitempty"`
+}
+
+type GetEnvImpactOpt func(url.Values)
+
+func GetEnvImpactWithPeriod(period string) GetEnvImpactOpt {
+	return func(q url.Values) {
+		q.Add("period", fmt.Sprint(period))
+	}
+}
+
+// [BETA] Returns environmental impact reports for an organization
+func (c Client) GetEnvImpact(ctx context.Context, opts ...GetEnvImpactOpt) (*GetEnvImpactResponse, error) {
+	path := "/env-impact"
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if len(opts) > 0 {
+		q := request.URL.Query()
+		for _, opt := range opts {
+			opt(q)
+		}
+		request.URL.RawQuery = q.Encode()
+	}
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "get-env-impact")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: http response: %w", err)
+	}
+
+	bodyresp := &GetEnvImpactResponse{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
 type ListEventsOpt func(url.Values)
 
 func ListEventsWithFrom(from time.Time) ListEventsOpt {
@@ -9420,16 +10226,68 @@ func (c Client) UpdateIAMOrganizationPolicy(ctx context.Context, req IAMPolicy) 
 	return bodyresp, nil
 }
 
+// Reset IAM Organization Policy
+func (c Client) ResetIAMOrganizationPolicy(ctx context.Context) (*Operation, error) {
+	path := "/iam-organization-policy:reset"
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "reset-iam-organization-policy")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
 type ListIAMRolesResponse struct {
 	IAMRoles []IAMRole `json:"iam-roles,omitempty"`
 }
 
 // FindIAMRole attempts to find an IAMRole by nameOrID.
 func (l ListIAMRolesResponse) FindIAMRole(nameOrID string) (IAMRole, error) {
+	var result []IAMRole
 	for i, elem := range l.IAMRoles {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.IAMRoles[i], nil
+			result = append(result, l.IAMRoles[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return IAMRole{}, fmt.Errorf("%q too many found in ListIAMRolesResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return IAMRole{}, fmt.Errorf("%q not found in ListIAMRolesResponse: %w", nameOrID, ErrNotFound)
@@ -9789,10 +10647,18 @@ type ListInstancesResponse struct {
 
 // FindListInstancesResponseInstances attempts to find an ListInstancesResponseInstances by nameOrID.
 func (l ListInstancesResponse) FindListInstancesResponseInstances(nameOrID string) (ListInstancesResponseInstances, error) {
+	var result []ListInstancesResponseInstances
 	for i, elem := range l.Instances {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.Instances[i], nil
+			result = append(result, l.Instances[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return ListInstancesResponseInstances{}, fmt.Errorf("%q too many found in ListInstancesResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return ListInstancesResponseInstances{}, fmt.Errorf("%q not found in ListInstancesResponse: %w", nameOrID, ErrNotFound)
@@ -9808,19 +10674,19 @@ type ListInstancesOpt func(url.Values)
 
 func ListInstancesWithManagerID(managerID UUID) ListInstancesOpt {
 	return func(q url.Values) {
-		q.Add("managerID", fmt.Sprint(managerID))
+		q.Add("manager-id", fmt.Sprint(managerID))
 	}
 }
 
 func ListInstancesWithManagerType(managerType ListInstancesManagerType) ListInstancesOpt {
 	return func(q url.Values) {
-		q.Add("managerType", fmt.Sprint(managerType))
+		q.Add("manager-type", fmt.Sprint(managerType))
 	}
 }
 
 func ListInstancesWithIPAddress(ipAddress string) ListInstancesOpt {
 	return func(q url.Values) {
-		q.Add("ipAddress", fmt.Sprint(ipAddress))
+		q.Add("ip-address", fmt.Sprint(ipAddress))
 	}
 }
 
@@ -9893,6 +10759,8 @@ type CreateInstanceRequest struct {
 	// Instance name
 	Name               string             `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 	PublicIPAssignment PublicIPAssignment `json:"public-ip-assignment,omitempty"`
+	// [Beta] Enable secure boot
+	SecurebootEnabled *bool `json:"secureboot-enabled,omitempty"`
 	// Instance Security Groups
 	SecurityGroups []SecurityGroup `json:"security-groups,omitempty"`
 	// SSH key
@@ -9901,6 +10769,8 @@ type CreateInstanceRequest struct {
 	SSHKeys []SSHKey `json:"ssh-keys,omitempty"`
 	// Instance template
 	Template *Template `json:"template" validate:"required"`
+	// [Beta] Enable Trusted Platform Module (TPM)
+	TpmEnabled *bool `json:"tpm-enabled,omitempty"`
 	// Instance Cloud-init user-data (base64 encoded)
 	UserData string `json:"user-data,omitempty" validate:"omitempty,gte=1,lte=32768"`
 }
@@ -9962,10 +10832,18 @@ type ListInstancePoolsResponse struct {
 
 // FindInstancePool attempts to find an InstancePool by nameOrID.
 func (l ListInstancePoolsResponse) FindInstancePool(nameOrID string) (InstancePool, error) {
+	var result []InstancePool
 	for i, elem := range l.InstancePools {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.InstancePools[i], nil
+			result = append(result, l.InstancePools[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return InstancePool{}, fmt.Errorf("%q too many found in ListInstancePoolsResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return InstancePool{}, fmt.Errorf("%q not found in ListInstancePoolsResponse: %w", nameOrID, ErrNotFound)
@@ -10474,10 +11352,18 @@ type ListInstanceTypesResponse struct {
 
 // FindInstanceType attempts to find an InstanceType by id.
 func (l ListInstanceTypesResponse) FindInstanceType(id string) (InstanceType, error) {
+	var result []InstanceType
 	for i, elem := range l.InstanceTypes {
 		if string(elem.ID) == id {
-			return l.InstanceTypes[i], nil
+			result = append(result, l.InstanceTypes[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return InstanceType{}, fmt.Errorf("%q too many found in ListInstanceTypesResponse: %w", id, ErrConflict)
 	}
 
 	return InstanceType{}, fmt.Errorf("%q not found in ListInstanceTypesResponse: %w", id, ErrNotFound)
@@ -10852,6 +11738,50 @@ func (c Client) CreateSnapshot(ctx context.Context, id UUID) (*Operation, error)
 	bodyresp := &Operation{}
 	if err := prepareJSONResponse(response, bodyresp); err != nil {
 		return nil, fmt.Errorf("CreateSnapshot: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// [Beta] Enable tpm for the instance.
+func (c Client) EnableTpm(ctx context.Context, id UUID) (*Operation, error) {
+	path := fmt.Sprintf("/instance/%v:enable-tpm", id)
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("EnableTpm: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("EnableTpm: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("EnableTpm: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "enable-tpm")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("EnableTpm: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("EnableTpm: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("EnableTpm: prepare Json response: %w", err)
 	}
 
 	return bodyresp, nil
@@ -11377,10 +12307,18 @@ type ListLoadBalancersResponse struct {
 
 // FindLoadBalancer attempts to find an LoadBalancer by nameOrID.
 func (l ListLoadBalancersResponse) FindLoadBalancer(nameOrID string) (LoadBalancer, error) {
+	var result []LoadBalancer
 	for i, elem := range l.LoadBalancers {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.LoadBalancers[i], nil
+			result = append(result, l.LoadBalancers[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return LoadBalancer{}, fmt.Errorf("%q too many found in ListLoadBalancersResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return LoadBalancer{}, fmt.Errorf("%q not found in ListLoadBalancersResponse: %w", nameOrID, ErrNotFound)
@@ -12087,10 +13025,18 @@ type ListPrivateNetworksResponse struct {
 
 // FindPrivateNetwork attempts to find an PrivateNetwork by nameOrID.
 func (l ListPrivateNetworksResponse) FindPrivateNetwork(nameOrID string) (PrivateNetwork, error) {
+	var result []PrivateNetwork
 	for i, elem := range l.PrivateNetworks {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.PrivateNetworks[i], nil
+			result = append(result, l.PrivateNetworks[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return PrivateNetwork{}, fmt.Errorf("%q too many found in ListPrivateNetworksResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return PrivateNetwork{}, fmt.Errorf("%q not found in ListPrivateNetworksResponse: %w", nameOrID, ErrNotFound)
@@ -12150,6 +13096,8 @@ type CreatePrivateNetworkRequest struct {
 	Name string `json:"name" validate:"required,gte=1,lte=255"`
 	// Private Network netmask
 	Netmask net.IP `json:"netmask,omitempty"`
+	// Private Network DHCP Options
+	Options *PrivateNetworkOptions `json:"options,omitempty"`
 	// Private Network start IP address
 	StartIP net.IP `json:"start-ip,omitempty"`
 }
@@ -12303,6 +13251,8 @@ type UpdatePrivateNetworkRequest struct {
 	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 	// Private Network netmask
 	Netmask net.IP `json:"netmask,omitempty"`
+	// Private Network DHCP Options
+	Options *PrivateNetworkOptions `json:"options,omitempty"`
 	// Private Network start IP address
 	StartIP net.IP `json:"start-ip,omitempty"`
 }
@@ -12974,10 +13924,18 @@ type ListSecurityGroupsResponse struct {
 
 // FindSecurityGroup attempts to find an SecurityGroup by nameOrID.
 func (l ListSecurityGroupsResponse) FindSecurityGroup(nameOrID string) (SecurityGroup, error) {
+	var result []SecurityGroup
 	for i, elem := range l.SecurityGroups {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.SecurityGroups[i], nil
+			result = append(result, l.SecurityGroups[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return SecurityGroup{}, fmt.Errorf("%q too many found in ListSecurityGroupsResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return SecurityGroup{}, fmt.Errorf("%q not found in ListSecurityGroupsResponse: %w", nameOrID, ErrNotFound)
@@ -13569,10 +14527,18 @@ type ListSKSClustersResponse struct {
 
 // FindSKSCluster attempts to find an SKSCluster by nameOrID.
 func (l ListSKSClustersResponse) FindSKSCluster(nameOrID string) (SKSCluster, error) {
+	var result []SKSCluster
 	for i, elem := range l.SKSClusters {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.SKSClusters[i], nil
+			result = append(result, l.SKSClusters[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return SKSCluster{}, fmt.Errorf("%q too many found in ListSKSClustersResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return SKSCluster{}, fmt.Errorf("%q not found in ListSKSClustersResponse: %w", nameOrID, ErrNotFound)
@@ -13645,11 +14611,17 @@ type CreateSKSClusterRequest struct {
 	Cni CreateSKSClusterRequestCni `json:"cni,omitempty"`
 	// Cluster description
 	Description *string `json:"description,omitempty" validate:"omitempty,lte=255"`
-	Labels      Labels  `json:"labels,omitempty"`
+	// Indicates whether to deploy the Kubernetes network proxy. When unspecified, defaults to `true` unless Cilium CNI is selected
+	EnableKubeProxy *bool `json:"enable-kube-proxy,omitempty"`
+	// A list of Kubernetes-only Alpha features to enable for API server component
+	FeatureGates []string         `json:"feature-gates,omitempty"`
+	Labels       SKSClusterLabels `json:"labels,omitempty"`
 	// Cluster service level
 	Level CreateSKSClusterRequestLevel `json:"level" validate:"required"`
 	// Cluster name
 	Name string `json:"name" validate:"required,gte=1,lte=255"`
+	// Cluster networking configuration.
+	Networking *Networking `json:"networking,omitempty"`
 	// SKS Cluster OpenID config map
 	Oidc *SKSOidc `json:"oidc,omitempty"`
 	// Control plane Kubernetes version
@@ -13814,7 +14786,7 @@ type ListSKSClusterVersionsOpt func(url.Values)
 
 func ListSKSClusterVersionsWithIncludeDeprecated(includeDeprecated string) ListSKSClusterVersionsOpt {
 	return func(q url.Values) {
-		q.Add("includeDeprecated", fmt.Sprint(includeDeprecated))
+		q.Add("include-deprecated", fmt.Sprint(includeDeprecated))
 	}
 }
 
@@ -13965,7 +14937,11 @@ type UpdateSKSClusterRequest struct {
 	AutoUpgrade *bool `json:"auto-upgrade,omitempty"`
 	// Cluster description
 	Description *string `json:"description,omitempty" validate:"omitempty,lte=255"`
-	Labels      Labels  `json:"labels,omitempty"`
+	// Add or remove the operators certificate authority (CA) from the list of trusted CAs of the api server. The default value is true
+	EnableOperatorsCA *bool `json:"enable-operators-ca,omitempty"`
+	// A list of Kubernetes-only Alpha features to enable for API server component
+	FeatureGates []string         `json:"feature-gates"`
+	Labels       SKSClusterLabels `json:"labels,omitempty"`
 	// Cluster name
 	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 	// SKS Cluster OpenID config map
@@ -14148,8 +15124,8 @@ type CreateSKSNodepoolRequest struct {
 	// Compute instance type
 	InstanceType *InstanceType `json:"instance-type" validate:"required"`
 	// Kubelet image GC options
-	KubeletImageGC *KubeletImageGC `json:"kubelet-image-gc,omitempty"`
-	Labels         Labels          `json:"labels,omitempty"`
+	KubeletImageGC *KubeletImageGC   `json:"kubelet-image-gc,omitempty"`
+	Labels         SKSNodepoolLabels `json:"labels,omitempty"`
 	// Nodepool name, lowercase only
 	Name string `json:"name" validate:"required,gte=1,lte=255"`
 	// Nodepool Private Networks
@@ -14323,8 +15299,8 @@ type UpdateSKSNodepoolRequest struct {
 	// Prefix to apply to managed instances names (default: pool), lowercase only
 	InstancePrefix string `json:"instance-prefix,omitempty" validate:"omitempty,gte=1,lte=30"`
 	// Compute instance type
-	InstanceType *InstanceType `json:"instance-type,omitempty"`
-	Labels       Labels        `json:"labels,omitempty"`
+	InstanceType *InstanceType     `json:"instance-type,omitempty"`
+	Labels       SKSNodepoolLabels `json:"labels,omitempty"`
 	// Nodepool name, lowercase only
 	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 	// Nodepool Private Networks
@@ -14599,6 +15575,50 @@ func (c Client) RotateSKSCcmCredentials(ctx context.Context, id UUID) (*Operatio
 	return bodyresp, nil
 }
 
+// Rotate Exoscale CSI credentials
+func (c Client) RotateSKSCsiCredentials(ctx context.Context, id UUID) (*Operation, error) {
+	path := fmt.Sprintf("/sks-cluster/%v/rotate-csi-credentials", id)
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "rotate-sks-csi-credentials")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
 // Rotate operators certificate authority
 func (c Client) RotateSKSOperatorsCA(ctx context.Context, id UUID) (*Operation, error) {
 	path := fmt.Sprintf("/sks-cluster/%v/rotate-operators-ca", id)
@@ -14800,10 +15820,18 @@ type ListSnapshotsResponse struct {
 
 // FindSnapshot attempts to find an Snapshot by nameOrID.
 func (l ListSnapshotsResponse) FindSnapshot(nameOrID string) (Snapshot, error) {
+	var result []Snapshot
 	for i, elem := range l.Snapshots {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.Snapshots[i], nil
+			result = append(result, l.Snapshots[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return Snapshot{}, fmt.Errorf("%q too many found in ListSnapshotsResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return Snapshot{}, fmt.Errorf("%q not found in ListSnapshotsResponse: %w", nameOrID, ErrNotFound)
@@ -15055,10 +16083,18 @@ type ListSOSBucketsUsageResponse struct {
 
 // FindSOSBucketUsage attempts to find an SOSBucketUsage by name.
 func (l ListSOSBucketsUsageResponse) FindSOSBucketUsage(name string) (SOSBucketUsage, error) {
+	var result []SOSBucketUsage
 	for i, elem := range l.SOSBucketsUsage {
 		if string(elem.Name) == name {
-			return l.SOSBucketsUsage[i], nil
+			result = append(result, l.SOSBucketsUsage[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return SOSBucketUsage{}, fmt.Errorf("%q too many found in ListSOSBucketsUsageResponse: %w", name, ErrConflict)
 	}
 
 	return SOSBucketUsage{}, fmt.Errorf("%q not found in ListSOSBucketsUsageResponse: %w", name, ErrNotFound)
@@ -15178,10 +16214,18 @@ type ListSSHKeysResponse struct {
 
 // FindSSHKey attempts to find an SSHKey by nameOrFingerprint.
 func (l ListSSHKeysResponse) FindSSHKey(nameOrFingerprint string) (SSHKey, error) {
+	var result []SSHKey
 	for i, elem := range l.SSHKeys {
 		if string(elem.Name) == nameOrFingerprint || string(elem.Fingerprint) == nameOrFingerprint {
-			return l.SSHKeys[i], nil
+			result = append(result, l.SSHKeys[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return SSHKey{}, fmt.Errorf("%q too many found in ListSSHKeysResponse: %w", nameOrFingerprint, ErrConflict)
 	}
 
 	return SSHKey{}, fmt.Errorf("%q not found in ListSSHKeysResponse: %w", nameOrFingerprint, ErrNotFound)
@@ -15383,10 +16427,18 @@ type ListTemplatesResponse struct {
 
 // FindTemplate attempts to find an Template by nameOrID.
 func (l ListTemplatesResponse) FindTemplate(nameOrID string) (Template, error) {
+	var result []Template
 	for i, elem := range l.Templates {
 		if string(elem.Name) == nameOrID || string(elem.ID) == nameOrID {
-			return l.Templates[i], nil
+			result = append(result, l.Templates[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return Template{}, fmt.Errorf("%q too many found in ListTemplatesResponse: %w", nameOrID, ErrConflict)
 	}
 
 	return Template{}, fmt.Errorf("%q not found in ListTemplatesResponse: %w", nameOrID, ErrNotFound)
@@ -15752,16 +16804,331 @@ func (c Client) UpdateTemplate(ctx context.Context, id UUID, req UpdateTemplateR
 	return bodyresp, nil
 }
 
+// Usage
+type GetUsageReportResponseUsage struct {
+	// Description
+	Description string `json:"description,omitempty"`
+	// Period Start Date
+	From string `json:"from,omitempty"`
+	// Product
+	Product string `json:"product,omitempty"`
+	// Quantity
+	Quantity string `json:"quantity,omitempty"`
+	// Period End Date
+	To string `json:"to,omitempty"`
+	// Unit
+	Unit string `json:"unit,omitempty"`
+	// Variable
+	Variable string `json:"variable,omitempty"`
+}
+
+type GetUsageReportResponse struct {
+	Usage []GetUsageReportResponseUsage `json:"usage,omitempty"`
+}
+
+type GetUsageReportOpt func(url.Values)
+
+func GetUsageReportWithPeriod(period string) GetUsageReportOpt {
+	return func(q url.Values) {
+		q.Add("period", fmt.Sprint(period))
+	}
+}
+
+// Returns aggregated usage reports for an organization
+func (c Client) GetUsageReport(ctx context.Context, opts ...GetUsageReportOpt) (*GetUsageReportResponse, error) {
+	path := "/usage-report"
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetUsageReport: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if len(opts) > 0 {
+		q := request.URL.Query()
+		for _, opt := range opts {
+			opt(q)
+		}
+		request.URL.RawQuery = q.Encode()
+	}
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("GetUsageReport: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("GetUsageReport: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "get-usage-report")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("GetUsageReport: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("GetUsageReport: http response: %w", err)
+	}
+
+	bodyresp := &GetUsageReportResponse{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("GetUsageReport: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type ListUsersResponse struct {
+	Users []User `json:"users,omitempty"`
+}
+
+// FindUser attempts to find an User by id.
+func (l ListUsersResponse) FindUser(id string) (User, error) {
+	var result []User
+	for i, elem := range l.Users {
+		if string(elem.ID) == id {
+			result = append(result, l.Users[i])
+		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return User{}, fmt.Errorf("%q too many found in ListUsersResponse: %w", id, ErrConflict)
+	}
+
+	return User{}, fmt.Errorf("%q not found in ListUsersResponse: %w", id, ErrNotFound)
+}
+
+// List Users
+func (c Client) ListUsers(ctx context.Context) (*ListUsersResponse, error) {
+	path := "/user"
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ListUsers: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("ListUsers: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("ListUsers: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "list-users")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("ListUsers: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("ListUsers: http response: %w", err)
+	}
+
+	bodyresp := &ListUsersResponse{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("ListUsers: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type CreateUserRequest struct {
+	// User Email
+	Email string `json:"email" validate:"required"`
+	// IAM Role
+	Role *IAMRole `json:"role,omitempty"`
+}
+
+// Create a User
+func (c Client) CreateUser(ctx context.Context, req CreateUserRequest) (*Operation, error) {
+	path := "/user"
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("CreateUser: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("CreateUser: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("CreateUser: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("CreateUser: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "create-user")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("CreateUser: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("CreateUser: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("CreateUser: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Delete User
+func (c Client) DeleteUser(ctx context.Context, id UUID) (*Operation, error) {
+	path := fmt.Sprintf("/user/%v", id)
+
+	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteUser: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("DeleteUser: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("DeleteUser: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "delete-user")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteUser: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("DeleteUser: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("DeleteUser: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type UpdateUserRoleRequest struct {
+	// IAM Role
+	Role *IAMRole `json:"role,omitempty"`
+}
+
+// Update a User's IAM role
+func (c Client) UpdateUserRole(ctx context.Context, id UUID, req UpdateUserRoleRequest) (*Operation, error) {
+	path := fmt.Sprintf("/user/%v", id)
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "update-user-role")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
 type ListZonesResponse struct {
 	Zones []Zone `json:"zones,omitempty"`
 }
 
 // FindZone attempts to find an Zone by nameOrAPIEndpoint.
 func (l ListZonesResponse) FindZone(nameOrAPIEndpoint string) (Zone, error) {
+	var result []Zone
 	for i, elem := range l.Zones {
 		if string(elem.Name) == nameOrAPIEndpoint || string(elem.APIEndpoint) == nameOrAPIEndpoint {
-			return l.Zones[i], nil
+			result = append(result, l.Zones[i])
 		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return Zone{}, fmt.Errorf("%q too many found in ListZonesResponse: %w", nameOrAPIEndpoint, ErrConflict)
 	}
 
 	return Zone{}, fmt.Errorf("%q not found in ListZonesResponse: %w", nameOrAPIEndpoint, ErrNotFound)
