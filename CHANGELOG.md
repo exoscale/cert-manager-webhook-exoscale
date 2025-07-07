@@ -1,4 +1,4 @@
-## Unreleased
+## 0.3.1
 
 - Migrate to egoscale v3 (v3.1.20) #22
 - Update Docker build image to `golang:1.24-alpine` #22
