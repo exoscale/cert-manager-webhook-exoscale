@@ -6,7 +6,11 @@ import (
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
 )
 
-var GroupName = os.Getenv("GROUP_NAME")
+var (
+	Version = "dev"
+
+	GroupName = os.Getenv("GROUP_NAME")
+)
 
 func main() {
 	if GroupName == "" {

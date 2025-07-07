@@ -1,3 +1,5 @@
+version: 2
+
 builds:
 - id: 
   binary: webhook
@@ -8,7 +10,7 @@ builds:
   flags:
   - -trimpath
   ldflags:
-  - -w -extldflags "-static"
+  - -s -w -extldflags "-static" -X main.Version={{.Version}}
   goos:
   - linux
   goarch:
@@ -38,7 +40,7 @@ checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ .Tag }}-snapshot"
+  version_template: "{{ .Tag }}-snapshot"
 
 release:
   github:
