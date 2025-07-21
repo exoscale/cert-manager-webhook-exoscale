@@ -1,3 +1,7 @@
+## 0.3.2
+
+- Use goreleaser v2.10.2
+
 ## 0.3.1
 
 - Migrate to egoscale v3 (v3.1.20) #22

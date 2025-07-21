@@ -7,7 +7,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 ---
@@ -19,7 +19,7 @@ metadata:
   name: cert-manager-webhook-exoscale:domain-solver
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 rules:
@@ -39,7 +39,7 @@ metadata:
   name: cert-manager-webhook-exoscale:auth-delegator
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -59,7 +59,7 @@ metadata:
   name: cert-manager-webhook-exoscale:domain-solver
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -81,7 +81,7 @@ metadata:
   namespace: cert-manager
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 rules:
@@ -103,7 +103,7 @@ metadata:
   namespace: kube-system
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -125,7 +125,7 @@ metadata:
   namespace: cert-manager
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -146,7 +146,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -168,7 +168,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -230,7 +230,7 @@ metadata:
   name: v1alpha1.acme.exoscale.com
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
   annotations:
@@ -253,7 +253,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -273,7 +273,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -296,7 +296,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -311,7 +311,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: exoscale-webhook-0.3.1
+    chart: exoscale-webhook-0.3.2
     release: exoscale-webhook
     heritage: Helm
 spec:
