@@ -6,6 +6,10 @@ kind: Issuer
 metadata:
   name: {{ include "exoscale-webhook.selfSignedIssuer" . }}
   namespace: {{ .Release.Namespace | quote }}
+  {{- with .Values.annotations }}
+  annotations:
+{{- toYaml . | nindent 4 }}
+  {{- end }}
   labels:
     app: {{ include "exoscale-webhook.name" . }}
     chart: {{ include "exoscale-webhook.chart" . }}
@@ -22,6 +26,10 @@ kind: Certificate
 metadata:
   name: {{ include "exoscale-webhook.rootCACertificate" . }}
   namespace: {{ .Release.Namespace | quote }}
+  {{- with .Values.annotations }}
+  annotations:
+{{- toYaml . | nindent 4 }}
+  {{- end }}
   labels:
     app: {{ include "exoscale-webhook.name" . }}
     chart: {{ include "exoscale-webhook.chart" . }}
@@ -43,6 +51,10 @@ kind: Issuer
 metadata:
   name: {{ include "exoscale-webhook.rootCAIssuer" . }}
   namespace: {{ .Release.Namespace | quote }}
+  {{- with .Values.annotations }}
+  annotations:
+{{- toYaml . | nindent 4 }}
+  {{- end }}
   labels:
     app: {{ include "exoscale-webhook.name" . }}
     chart: {{ include "exoscale-webhook.chart" . }}
@@ -60,6 +72,10 @@ kind: Certificate
 metadata:
   name: {{ include "exoscale-webhook.servingCertificate" . }}
   namespace: {{ .Release.Namespace | quote }}
+  {{- with .Values.annotations }}
+  annotations:
+{{- toYaml . | nindent 4 }}
+  {{- end }}
   labels:
     app: {{ include "exoscale-webhook.name" . }}
     chart: {{ include "exoscale-webhook.chart" . }}
