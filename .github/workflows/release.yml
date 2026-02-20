@@ -52,7 +52,7 @@ jobs:
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | helm registry login registry-1.docker.io -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
       - name: Push chart
-        run: helm push exoscale-webhook-${VERSION}.tgz oci:///oci://registry-1.docker.io/exoscale/cert-manager-webhook-exoscale
+        run: helm push cert-manager-webhook-exoscale-${VERSION}.tgz oci://registry-1.docker.io/exoscale
         env:
           VERSION: ${{ steps.version.outputs.version }}
 
