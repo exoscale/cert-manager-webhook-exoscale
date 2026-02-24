@@ -46,5 +46,3 @@ release:
   github:
     owner: exoscale
     name: cert-manager-webhook-exoscale
-  extra_files:
-  - glob: ./cert-manager-webhook-exoscale-*.tgz # helm chart
