@@ -24,6 +24,7 @@ import (
 	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -34,8 +35,8 @@ import (
 func init() {
 	vFlag := flag.Lookup("v")
 	if vFlag != nil {
-		flag.Set("alsologtostderr", fmt.Sprintf("%t", true))
-		vFlag.Value.Set("12")
+		utilruntime.Must(flag.Set("alsologtostderr", fmt.Sprintf("%t", true)))
+		utilruntime.Must(vFlag.Value.Set("12"))
 	}
 }
 
@@ -71,7 +72,10 @@ type fixture struct {
 
 	setupLock   sync.Mutex
 	environment *envtest.Environment
-	clientset   kubernetes.Interface
+	// An admin user for running kubectl commands against this envtest
+	// environment.
+	adminUser *envtest.AuthenticatedUser
+	clientset kubernetes.Interface
 
 	pollInterval     time.Duration
 	propagationLimit time.Duration
@@ -111,8 +115,21 @@ func (f *fixture) setup(t *testing.T) func() {
 		t.Fatalf("error validating test fixture configuration: %v", err)
 	}
 
-	env, stopFunc := apiserver.RunBareControlPlane(t)
+	env, stopControlPlaneFn := apiserver.RunBareControlPlane(t)
 	f.environment = env
+
+	// An admin user instance for running kubectl against this envtest
+	// environment.
+	// Derived from the envtest global config which is configured with very high
+	// QPS and Burst settings for rapid interactions with the API server.
+	adminUser, err := env.AddUser(envtest.User{
+		Name:   "envtest-admin",
+		Groups: []string{"system:masters"},
+	}, env.Config)
+	if err != nil {
+		t.Fatalf("unable to provision admin user: %s", err)
+	}
+	f.adminUser = adminUser
 
 	cl, err := kubernetes.NewForConfig(env.Config)
 	if err != nil {
@@ -122,10 +139,12 @@ func (f *fixture) setup(t *testing.T) func() {
 
 	stopCh := make(chan struct{})
 
-	f.testSolver.Initialize(env.Config, stopCh)
+	if err := f.testSolver.Initialize(env.Config, stopCh); err != nil {
+		t.Fatalf("error initializing solver: %v", err)
+	}
 
 	return func() {
 		close(stopCh)
-		stopFunc()
+		stopControlPlaneFn()
 	}
 }

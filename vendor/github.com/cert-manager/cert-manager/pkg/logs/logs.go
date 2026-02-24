@@ -20,26 +20,22 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/component-base/logs"
 	logsapi "k8s.io/component-base/logs/api/v1"
-	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 
 	"github.com/cert-manager/cert-manager/pkg/api"
+
+	_ "k8s.io/component-base/logs/json/register"
 )
 
-var (
-	Log = klogr.NewWithOptions().WithName("cert-manager")
-)
+var Log = klog.TODO().WithName("cert-manager")
 
 const (
 	// Following analog to https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md
@@ -52,21 +48,11 @@ const (
 	TraceLevel        = 5
 )
 
-// GlogWriter serves as a bridge between the standard log package and the glog package.
-type GlogWriter struct{}
-
-// Write implements the io.Writer interface.
-func (writer GlogWriter) Write(data []byte) (n int, err error) {
-	klog.Info(string(data))
-	return len(data), nil
-}
-
 // InitLogs initializes logs the way we want for kubernetes.
 func InitLogs() {
 	logs.InitLogs()
 
-	log.SetOutput(GlogWriter{})
-	log.SetFlags(0)
+	klog.EnableContextualLogging(true) // Enable contextual logging
 }
 
 func AddFlagsNonDeprecated(opts *logsapi.LoggingConfiguration, fs *pflag.FlagSet) {
@@ -91,6 +77,7 @@ func AddFlags(opts *logsapi.LoggingConfiguration, fs *pflag.FlagSet) {
 			"logtostderr", "one_output", "skip_headers", "skip_log_headers", "stderrthreshold":
 			pf := pflag.PFlagFromGoFlag(f)
 			pf.Deprecated = "this flag may be removed in the future"
+			pf.Hidden = true
 			fs.AddFlag(pf)
 		}
 	})
@@ -100,10 +87,6 @@ func AddFlags(opts *logsapi.LoggingConfiguration, fs *pflag.FlagSet) {
 
 func ValidateAndApply(opts *logsapi.LoggingConfiguration) error {
 	return logsapi.ValidateAndApply(opts, nil)
-}
-
-func ValidateAndApplyAsField(opts *logsapi.LoggingConfiguration, fldPath *field.Path) error {
-	return logsapi.ValidateAndApplyAsField(opts, nil, fldPath)
 }
 
 // FlushLogs flushes logs immediately.
@@ -183,10 +166,6 @@ func NewContext(ctx context.Context, l logr.Logger, names ...string) context.Con
 		l = l.WithName(n)
 	}
 	return logr.NewContext(ctx, l)
-}
-
-func V(level int) klog.Verbose {
-	return klog.V(klog.Level(level))
 }
 
 // LogWithFormat is a wrapper for logger that adds Infof method to log messages
