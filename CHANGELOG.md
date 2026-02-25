@@ -1,6 +1,7 @@
 ## unreleased
 
-- Bump dependencies#27
+- Bump dependencies #27
+- Add Helm chart publish step #26
 
 ## 0.3.2
 
