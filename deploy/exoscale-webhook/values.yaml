@@ -12,11 +12,6 @@ image:
 nameOverride: "exoscale-webhook"
 fullnameOverride: "cert-manager-webhook-exoscale"
 
-secret:
-  accessKey: ""
-  secretKey: ""
-  name: exoscale-webhook-secret
-
 env:
   debug: ""
   trace: ""
