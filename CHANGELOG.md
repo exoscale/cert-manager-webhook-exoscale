@@ -2,6 +2,7 @@
 
 - Bump dependencies #27
 - Add Helm chart publish step #26
+- Remove unused secret block from Helm chart values.yaml #28
 
 ### Note on the breaking change:
 
