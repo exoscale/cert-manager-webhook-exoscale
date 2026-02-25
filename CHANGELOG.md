@@ -3,6 +3,10 @@
 - Bump dependencies #27
 - Add Helm chart publish step #26
 
+### Note on the breaking change:
+
+- helm chart was renamed (`exoscale-webhook` -> `cert-manager-webhook-exoscale-chart`) to allow us to push chart to dockerhub.
+
 ## 0.3.2
 
 - Use goreleaser v2.10.2
