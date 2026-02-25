@@ -14,9 +14,10 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 #v4.3.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - run: make go.mk
         shell: bash
@@ -36,3 +37,35 @@ jobs:
           release_github_token: ${{ secrets.GITHUB_TOKEN }}
           registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
           registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  publish-chart:
+    runs-on: ubuntu-latest
+    needs: goreleaser
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 #v4.3.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 #v4.3.1
+
+      - name: Package chart
+        run: helm package deploy/exoscale-webhook
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Login to DockerHub with helm
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | helm registry login registry-1.docker.io -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+      - name: Push chart
+        run: helm push cert-manager-webhook-exoscale-chart-${VERSION}.tgz oci://registry-1.docker.io/exoscale
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+
