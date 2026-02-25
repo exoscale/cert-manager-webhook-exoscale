@@ -1,3 +1,7 @@
+## unreleased
+
+- Bump dependencies#27
+
 ## 0.3.2
 
 - Use goreleaser v2.10.2
