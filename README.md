@@ -17,14 +17,26 @@ Based on [Example Webhook](https://github.com/cert-manager/webhook-example).
 
 #### With Helm
 
-Once everything is set up, install Exoscale Webhook:
+Once everything is set up, install Exoscale Webhook (example for version 0.3.3):
 ```bash
+helm install exoscale-webhook oci://registry-1.docker.io/exoscale/cert-manager-webhook-exoscale-chart --version 0.3.3
+```
+
+Alternatively you can manually install from the repository:
+ ```bash
 git clone https://github.com/exoscale/cert-manager-webhook-exoscale.git
 cd cert-manager-webhook-exoscale
 helm install exoscale-webhook ./deploy/exoscale-webhook
 ```
 
 #### With Kubectl or Kustomize
+
+First clone the repo locally:
+
+```bash
+git clone https://github.com/exoscale/cert-manager-webhook-exoscale.git
+cd cert-manager-webhook-exoscale
+```
 
 The manifest is generated from Helm (`make rendered-manifest.yaml`)
 
