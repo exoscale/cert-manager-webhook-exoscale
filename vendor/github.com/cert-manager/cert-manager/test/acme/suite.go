@@ -17,7 +17,6 @@ limitations under the License.
 package dns
 
 import (
-	"context"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -33,7 +32,7 @@ import (
 func (f *fixture) TestBasicPresentRecord(t *testing.T) {
 	ns, cleanup := f.setupNamespace(t, "basic-present-record")
 	defer cleanup()
-	ch := f.buildChallengeRequest(t, ns)
+	ch := f.buildChallengeRequest(ns)
 
 	t.Logf("Calling Present with ChallengeRequest: %#v", ch)
 	// present the record
@@ -41,10 +40,14 @@ func (f *fixture) TestBasicPresentRecord(t *testing.T) {
 		t.Errorf("expected Present to not error, but got: %v", err)
 		return
 	}
-	defer f.testSolver.CleanUp(ch)
+	defer func() {
+		if err := f.testSolver.CleanUp(ch); err != nil {
+			t.Errorf("expected CleanUp to not error, but got: %v", err)
+		}
+	}()
 
 	// wait until the record has propagated
-	if err := wait.PollUntilContextTimeout(context.TODO(), f.getPollInterval(), f.getPropagationLimit(), true, f.recordHasPropagatedCheck(ch.ResolvedFQDN, ch.Key)); err != nil {
+	if err := wait.PollUntilContextTimeout(t.Context(), f.getPollInterval(), f.getPropagationLimit(), true, f.recordHasPropagatedCheck(ch.ResolvedFQDN, ch.Key)); err != nil {
 		t.Errorf("error waiting for DNS record propagation: %v", err)
 		return
 	}
@@ -55,7 +58,7 @@ func (f *fixture) TestBasicPresentRecord(t *testing.T) {
 	}
 
 	// wait until the record has been deleted
-	if err := wait.PollUntilContextTimeout(context.TODO(), f.getPollInterval(), f.getPropagationLimit(), true, f.recordHasBeenDeletedCheck(ch.ResolvedFQDN, ch.Key)); err != nil {
+	if err := wait.PollUntilContextTimeout(t.Context(), f.getPollInterval(), f.getPropagationLimit(), true, f.recordHasBeenDeletedCheck(ch.ResolvedFQDN, ch.Key)); err != nil {
 		t.Errorf("error waiting for record to be deleted: %v", err)
 		return
 	}
@@ -72,8 +75,8 @@ func (f *fixture) TestExtendedDeletingOneRecordRetainsOthers(t *testing.T) {
 
 	ns, cleanup := f.setupNamespace(t, "extended-supports-multiple-same-domain")
 	defer cleanup()
-	ch := f.buildChallengeRequest(t, ns)
-	ch2 := f.buildChallengeRequest(t, ns)
+	ch := f.buildChallengeRequest(ns)
+	ch2 := f.buildChallengeRequest(ns)
 	ch2.Key = "anothertestingkey"
 
 	// present the first record
@@ -81,18 +84,26 @@ func (f *fixture) TestExtendedDeletingOneRecordRetainsOthers(t *testing.T) {
 		t.Errorf("expected Present to not error, but got: %v", err)
 		return
 	}
-	defer f.testSolver.CleanUp(ch)
+	defer func() {
+		if err := f.testSolver.CleanUp(ch); err != nil {
+			t.Errorf("expected CleanUp to not error, but got: %v", err)
+		}
+	}()
 
 	// present the second record
 	if err := f.testSolver.Present(ch2); err != nil {
 		t.Errorf("expected Present to not error, but got: %v", err)
 		return
 	}
-	defer f.testSolver.CleanUp(ch2)
+	defer func() {
+		if err := f.testSolver.CleanUp(ch2); err != nil {
+			t.Errorf("expected CleanUp to not error, but got: %v", err)
+		}
+	}()
 
 	// wait until all records have propagated
 	if err := wait.PollUntilContextTimeout(
-		context.TODO(),
+		t.Context(),
 		f.getPollInterval(),
 		f.getPropagationLimit(),
 		true,
@@ -111,7 +122,7 @@ func (f *fixture) TestExtendedDeletingOneRecordRetainsOthers(t *testing.T) {
 
 	// wait until the second record has been deleted and the first one remains
 	if err := wait.PollUntilContextTimeout(
-		context.TODO(),
+		t.Context(),
 		f.getPollInterval(),
 		f.getPropagationLimit(),
 		true,

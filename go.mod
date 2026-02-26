@@ -3,7 +3,7 @@ module github.com/exoscale/cert-manager-webhook-exoscale
 go 1.25.7
 
 require (
-	github.com/cert-manager/cert-manager v1.13.2
+	github.com/cert-manager/cert-manager v1.19.4
 	github.com/exoscale/egoscale/v3 v3.1.20
 	k8s.io/api v0.34.4
 	k8s.io/apiextensions-apiserver v0.34.4
@@ -118,7 +118,6 @@ require (
 	k8s.io/component-base v0.34.4 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kms v0.34.4 // indirect
-	k8s.io/kube-aggregator v0.28.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.33.0 // indirect
