@@ -17,8 +17,6 @@ limitations under the License.
 package util
 
 import (
-	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -42,35 +40,35 @@ const (
 )
 
 // SetupExitHandler:
-// A context is returned which is canceled on receiving a shutdown signal (SIGTERM
+// A stop channel is returned which is closed on receiving a shutdown signal (SIGTERM
 // or SIGINT). If a second signal is caught, the program is terminated directly with
 // exit code 130.
 // SetupExitHandler also returns an exit function, this exit function calls os.Exit(...)
 // if there is a exit code in the errorExitCodeChannel.
 // The errorExitCodeChannel receives exit codes when SetExitCode is called or when
 // a shutdown signal is received (only if exitBehavior is AlwaysErrCode).
-func SetupExitHandler(parentCtx context.Context, exitBehavior ExitBehavior) (context.Context, func()) {
+func SetupExitHandler(exitBehavior ExitBehavior) (<-chan struct{}, func()) {
 	close(onlyOneSignalHandler) // panics when called twice
 
-	ctx, cancel := context.WithCancelCause(parentCtx)
+	stop := make(chan struct{})
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, shutdownSignals...)
 	go func() {
-		// first signal. Cancel context and pass exit code to errorExitCodeChannel.
-		signalInt := int((<-c).(syscall.Signal))
+		// first signal. Close stop chan and pass exit code to exitCodeChannel.
+		exitCode := 128 + int((<-c).(syscall.Signal))
 		if exitBehavior == AlwaysErrCode {
-			errorExitCodeChannel <- (128 + signalInt)
+			errorExitCodeChannel <- exitCode
 		}
-		cancel(fmt.Errorf("received signal %d", signalInt))
+		close(stop)
 		// second signal. Exit directly.
 		<-c
 		os.Exit(130)
 	}()
 
-	return ctx, func() {
+	return stop, func() {
 		select {
-		case signalInt := <-errorExitCodeChannel:
-			os.Exit(signalInt)
+		case signal := <-errorExitCodeChannel:
+			os.Exit(signal)
 		default:
 			// Do not exit, there are no exit codes in the channel,
 			// so just continue and let the main function go out of

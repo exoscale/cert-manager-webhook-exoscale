@@ -12,7 +12,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
@@ -24,14 +24,9 @@ import (
 	logf "github.com/cert-manager/cert-manager/pkg/logs"
 )
 
-type preCheckDNSFunc func(ctx context.Context, fqdn, value string, nameservers []string,
+type preCheckDNSFunc func(fqdn, value string, nameservers []string,
 	useAuthoritative bool) (bool, error)
-type dnsQueryFunc func(ctx context.Context, fqdn string, rtype uint16, nameservers []string, recursive bool) (in *dns.Msg, err error)
-
-type cachedEntry struct {
-	Response   *dns.Msg
-	ExpiryTime time.Time
-}
+type dnsQueryFunc func(fqdn string, rtype uint16, nameservers []string, recursive bool) (in *dns.Msg, err error)
 
 var (
 	// PreCheckDNS checks DNS propagation before notifying ACME that
@@ -42,10 +37,13 @@ var (
 	dnsQuery dnsQueryFunc = DNSQuery
 
 	fqdnToZoneLock sync.RWMutex
-	fqdnToZone     = map[string]cachedEntry{}
+	fqdnToZone     = map[string]string{}
 )
 
 const defaultResolvConf = "/etc/resolv.conf"
+
+const issueTag = "issue"
+const issuewildTag = "issuewild"
 
 var defaultNameservers = []string{
 	"8.8.8.8:53",
@@ -80,8 +78,8 @@ func getNameservers(path string, defaults []string) []string {
 // that it finds. Returns an error when a loop is found in the CNAME chain. The
 // argument fqdnChain is used by the function itself to keep track of which fqdns it
 // already encountered and detect loops.
-func followCNAMEs(ctx context.Context, fqdn string, nameservers []string, fqdnChain ...string) (string, error) {
-	r, err := dnsQuery(ctx, fqdn, dns.TypeCNAME, nameservers, true)
+func followCNAMEs(fqdn string, nameservers []string, fqdnChain ...string) (string, error) {
+	r, err := dnsQuery(fqdn, dns.TypeCNAME, nameservers, true)
 	if err != nil {
 		return "", err
 	}
@@ -93,7 +91,7 @@ func followCNAMEs(ctx context.Context, fqdn string, nameservers []string, fqdnCh
 		if !ok || cn.Hdr.Name != fqdn {
 			continue
 		}
-		logf.FromContext(ctx).V(logf.DebugLevel).Info("Updating FQDN", "fqdn", fqdn, "cname", cn.Target)
+		logf.V(logf.DebugLevel).Infof("Updating FQDN: %s with its CNAME: %s", fqdn, cn.Target)
 		// Check if we were here before to prevent loops in the chain of CNAME records.
 		for _, fqdnInChain := range fqdnChain {
 			if cn.Target != fqdnInChain {
@@ -101,26 +99,26 @@ func followCNAMEs(ctx context.Context, fqdn string, nameservers []string, fqdnCh
 			}
 			return "", fmt.Errorf("Found recursive CNAME record to %q when looking up %q", cn.Target, fqdn)
 		}
-		return followCNAMEs(ctx, cn.Target, nameservers, append(fqdnChain, fqdn)...)
+		return followCNAMEs(cn.Target, nameservers, append(fqdnChain, fqdn)...)
 	}
 	return fqdn, nil
 }
 
 // checkDNSPropagation checks if the expected TXT record has been propagated to all authoritative nameservers.
-func checkDNSPropagation(ctx context.Context, fqdn, value string, nameservers []string,
+func checkDNSPropagation(fqdn, value string, nameservers []string,
 	useAuthoritative bool) (bool, error) {
 
 	var err error
-	fqdn, err = followCNAMEs(ctx, fqdn, nameservers)
+	fqdn, err = followCNAMEs(fqdn, nameservers)
 	if err != nil {
 		return false, err
 	}
 
 	if !useAuthoritative {
-		return checkAuthoritativeNss(ctx, fqdn, value, nameservers)
+		return checkAuthoritativeNss(fqdn, value, nameservers)
 	}
 
-	authoritativeNss, err := lookupNameservers(ctx, fqdn, nameservers)
+	authoritativeNss, err := lookupNameservers(fqdn, nameservers)
 	if err != nil {
 		return false, err
 	}
@@ -128,13 +126,13 @@ func checkDNSPropagation(ctx context.Context, fqdn, value string, nameservers []
 	for i, ans := range authoritativeNss {
 		authoritativeNss[i] = net.JoinHostPort(ans, "53")
 	}
-	return checkAuthoritativeNss(ctx, fqdn, value, authoritativeNss)
+	return checkAuthoritativeNss(fqdn, value, authoritativeNss)
 }
 
 // checkAuthoritativeNss queries each of the given nameservers for the expected TXT record.
-func checkAuthoritativeNss(ctx context.Context, fqdn, value string, nameservers []string) (bool, error) {
+func checkAuthoritativeNss(fqdn, value string, nameservers []string) (bool, error) {
 	for _, ns := range nameservers {
-		r, err := dnsQuery(ctx, fqdn, dns.TypeTXT, []string{ns}, true)
+		r, err := DNSQuery(fqdn, dns.TypeTXT, []string{ns}, true)
 		if err != nil {
 			return false, err
 		}
@@ -144,7 +142,7 @@ func checkAuthoritativeNss(ctx context.Context, fqdn, value string, nameservers 
 			return false, fmt.Errorf("NS %s returned %s for %s", ns, dns.RcodeToString[r.Rcode], fqdn)
 		}
 
-		logf.FromContext(ctx).V(logf.DebugLevel).Info("Looking up TXT records", "fqdn", fqdn)
+		logf.V(logf.DebugLevel).Infof("Looking up TXT records for %q", fqdn)
 		var found bool
 		for _, rr := range r.Answer {
 			if txt, ok := rr.(*dns.TXT); ok {
@@ -159,13 +157,13 @@ func checkAuthoritativeNss(ctx context.Context, fqdn, value string, nameservers 
 			return false, nil
 		}
 	}
-	logf.FromContext(ctx).V(logf.DebugLevel).Info("Selfchecking using the DNS Lookup method was successful")
+	logf.V(logf.DebugLevel).Infof("Selfchecking using the DNS Lookup method was successful")
 	return true, nil
 }
 
 // DNSQuery will query a nameserver, iterating through the supplied servers as it retries
 // The nameserver should include a port, to facilitate testing where we talk to a mock dns server.
-func DNSQuery(ctx context.Context, fqdn string, rtype uint16, nameservers []string, recursive bool) (in *dns.Msg, err error) {
+func DNSQuery(fqdn string, rtype uint16, nameservers []string, recursive bool) (in *dns.Msg, err error) {
 	switch rtype {
 	case dns.TypeCAA, dns.TypeCNAME, dns.TypeNS, dns.TypeSOA, dns.TypeTXT:
 	default:
@@ -193,17 +191,17 @@ func DNSQuery(ctx context.Context, fqdn string, rtype uint16, nameservers []stri
 	for _, ns := range nameservers {
 		// If the TCP request succeeds, the err will reset to nil
 		if strings.HasPrefix(ns, "https://") {
-			in, _, err = http.Exchange(ctx, m, ns)
+			in, _, err = http.Exchange(context.TODO(), m, ns)
 
 		} else {
-			in, _, err = udp.ExchangeContext(ctx, m, ns)
+			in, _, err = udp.Exchange(m, ns)
 
 			// Try TCP if UDP fails
 			if (in != nil && in.Truncated) ||
 				(err != nil && strings.HasPrefix(err.Error(), "read udp") && strings.HasSuffix(err.Error(), "i/o timeout")) {
-				logf.FromContext(ctx).V(logf.DebugLevel).Info("UDP dns lookup failed, retrying with TCP", "err", err)
+				logf.V(logf.DebugLevel).Infof("UDP dns lookup failed, retrying with TCP: %v", err)
 				// If the TCP request succeeds, the err will reset to nil
-				in, _, err = tcp.ExchangeContext(ctx, m, ns)
+				in, _, err = tcp.Exchange(m, ns)
 			}
 		}
 
@@ -226,7 +224,7 @@ func (c *httpDNSClient) Exchange(ctx context.Context, m *dns.Msg, a string) (r *
 		return nil, 0, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a, bytes.NewReader(p))
+	req, err := http.NewRequest(http.MethodPost, a, bytes.NewReader(p))
 	if err != nil {
 		return nil, 0, err
 	}
@@ -257,7 +255,7 @@ func (c *httpDNSClient) Exchange(ctx context.Context, m *dns.Msg, a string) (r *
 		return nil, 0, fmt.Errorf("dns: unexpected Content-Type %q; expected %q", ct, dohMimeType)
 	}
 
-	p, err = io.ReadAll(resp.Body)
+	p, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -272,17 +270,119 @@ func (c *httpDNSClient) Exchange(ctx context.Context, m *dns.Msg, a string) (r *
 	return r, rtt, nil
 }
 
+func ValidateCAA(domain string, issuerID []string, iswildcard bool, nameservers []string) error {
+	// see https://tools.ietf.org/html/rfc6844#section-4
+	// for more information about how CAA lookup is performed
+	fqdn := ToFqdn(domain)
+
+	issuerSet := make(map[string]bool)
+	for _, s := range issuerID {
+		issuerSet[s] = true
+	}
+
+	var caas []*dns.CAA
+	for {
+		// follow at most 8 cnames per label
+		queryDomain := fqdn
+		var msg *dns.Msg
+		var err error
+		for i := 0; i < 8; i++ {
+			// usually, we should be able to just ask the local recursive
+			// nameserver for CAA records, but some setups will return SERVFAIL
+			// on unknown types like CAA. Instead, ask the authoritative server
+			var authNS []string
+			authNS, err = lookupNameservers(queryDomain, nameservers)
+			if err != nil {
+				return fmt.Errorf("Could not validate CAA record: %s", err)
+			}
+			for i, ans := range authNS {
+				authNS[i] = net.JoinHostPort(ans, "53")
+			}
+			msg, err = DNSQuery(queryDomain, dns.TypeCAA, authNS, false)
+			if err != nil {
+				return fmt.Errorf("Could not validate CAA record: %s", err)
+			}
+			// domain may not exist, which is fine. It will fail HTTP01 checks
+			// but DNS01 checks will create a proper domain
+			if msg.Rcode == dns.RcodeNameError {
+				break
+			}
+			if msg.Rcode != dns.RcodeSuccess {
+				return fmt.Errorf("Could not validate CAA: Unexpected response code '%s' for %s",
+					dns.RcodeToString[msg.Rcode], domain)
+			}
+			oldQuery := queryDomain
+			queryDomain, err := followCNAMEs(queryDomain, nameservers)
+			if err != nil {
+				return fmt.Errorf("while trying to follow CNAMEs for domain %s using nameservers %v: %w", queryDomain, nameservers, err)
+			}
+			if queryDomain == oldQuery {
+				break
+			}
+		}
+		// we have a response that's not a CNAME. It might be empty.
+		// if it is, go up a label and ask again
+		for _, rr := range msg.Answer {
+			caa, ok := rr.(*dns.CAA)
+			if !ok {
+				continue
+			}
+			caas = append(caas, caa)
+		}
+		// once we've found any CAA records, we use these CAAs
+		if len(caas) != 0 {
+			break
+		}
+
+		index := strings.Index(fqdn, ".")
+		if index == -1 {
+			panic("should never happen")
+		}
+		fqdn = fqdn[index+1:]
+		if len(fqdn) == 0 {
+			// we reached the root with no CAA, don't bother asking
+			return nil
+		}
+	}
+
+	if !matchCAA(caas, issuerSet, iswildcard) {
+		// TODO(dmo): better error message
+		return fmt.Errorf("CAA record does not match issuer")
+	}
+	return nil
+}
+
+func matchCAA(caas []*dns.CAA, issuerIDs map[string]bool, iswildcard bool) bool {
+	matches := false
+	for _, caa := range caas {
+		// if we require a wildcard certificate, we must prioritize any issuewild
+		// tags - only if it matches (regardless of any other entries) can we
+		// issue a wildcard certificate
+		if iswildcard && caa.Tag == issuewildTag {
+			return issuerIDs[caa.Value]
+		}
+
+		// issue tags allow any certificate, we perform a check which will only
+		// be returned if we do not need a wildcard certificate, or if we need
+		// a wildcard certificate and no issuewild entries are present
+		if caa.Tag == issueTag {
+			matches = matches || issuerIDs[caa.Value]
+		}
+	}
+	return matches
+}
+
 // lookupNameservers returns the authoritative nameservers for the given fqdn.
-func lookupNameservers(ctx context.Context, fqdn string, nameservers []string) ([]string, error) {
+func lookupNameservers(fqdn string, nameservers []string) ([]string, error) {
 	var authoritativeNss []string
 
-	logf.FromContext(ctx).V(logf.DebugLevel).Info("Searching fqdn", "fqdn", fqdn, "seedNameservers", nameservers)
-	zone, err := FindZoneByFqdn(ctx, fqdn, nameservers)
+	logf.V(logf.DebugLevel).Infof("Searching fqdn %q using seed nameservers [%s]", fqdn, strings.Join(nameservers, ", "))
+	zone, err := FindZoneByFqdn(fqdn, nameservers)
 	if err != nil {
 		return nil, fmt.Errorf("Could not determine the zone for %q: %v", fqdn, err)
 	}
 
-	r, err := dnsQuery(ctx, zone, dns.TypeNS, nameservers, true)
+	r, err := DNSQuery(zone, dns.TypeNS, nameservers, true)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +394,7 @@ func lookupNameservers(ctx context.Context, fqdn string, nameservers []string) (
 	}
 
 	if len(authoritativeNss) > 0 {
-		logf.FromContext(ctx).V(logf.DebugLevel).Info("Returning authoritative nameservers", "authoritativeNameservers", authoritativeNss)
+		logf.V(logf.DebugLevel).Infof("Returning authoritative nameservers [%s]", strings.Join(authoritativeNss, ", "))
 		return authoritativeNss, nil
 	}
 	return nil, fmt.Errorf("Could not determine authoritative nameservers for %q", fqdn)
@@ -302,31 +402,15 @@ func lookupNameservers(ctx context.Context, fqdn string, nameservers []string) (
 
 // FindZoneByFqdn determines the zone apex for the given fqdn by recursing up the
 // domain labels until the nameserver returns a SOA record in the answer section.
-func FindZoneByFqdn(ctx context.Context, fqdn string, nameservers []string) (string, error) {
-	// Do we have it cached?
+func FindZoneByFqdn(fqdn string, nameservers []string) (string, error) {
 	fqdnToZoneLock.RLock()
-	cachedEntryItem, existsInCache := fqdnToZone[fqdn]
-	fqdnToZoneLock.RUnlock()
-
-	if existsInCache {
-		// ensure cachedEntry is not expired
-		if time.Now().Before(cachedEntryItem.ExpiryTime) {
-			logf.FromContext(ctx).V(logf.DebugLevel).Info("Returning cached DNS response", "fqdn", fqdn)
-
-			for _, ans := range cachedEntryItem.Response.Answer {
-				if soa, ok := ans.(*dns.SOA); ok {
-					return soa.Hdr.Name, nil
-				}
-			}
-
-			return "", fmt.Errorf("cached response has no SOA record")
-		}
-
-		// Remove expired entry
-		fqdnToZoneLock.Lock()
-		delete(fqdnToZone, fqdn)
-		fqdnToZoneLock.Unlock()
+	// Do we have it cached?
+	if zone, ok := fqdnToZone[fqdn]; ok {
+		fqdnToZoneLock.RUnlock()
+		logf.V(logf.DebugLevel).Infof("Returning cached zone record %q for fqdn %q", zone, fqdn)
+		return zone, nil
 	}
+	fqdnToZoneLock.RUnlock()
 
 	labelIndexes := dns.Split(fqdn)
 
@@ -346,7 +430,7 @@ func FindZoneByFqdn(ctx context.Context, fqdn string, nameservers []string) (str
 	for _, index := range labelIndexes {
 		domain := fqdn[index:]
 
-		in, err := dnsQuery(ctx, domain, dns.TypeSOA, nameservers, true)
+		in, err := DNSQuery(domain, dns.TypeSOA, nameservers, true)
 		if err != nil {
 			return "", err
 		}
@@ -375,13 +459,10 @@ func FindZoneByFqdn(ctx context.Context, fqdn string, nameservers []string) (str
 				fqdnToZoneLock.Lock()
 				defer fqdnToZoneLock.Unlock()
 
-				fqdnToZone[fqdn] = cachedEntry{
-					Response:   in,
-					ExpiryTime: time.Now().Add(time.Duration(soa.Hdr.Ttl) * time.Second),
-				}
-
-				logf.FromContext(ctx).V(logf.DebugLevel).Info("Caching DNS response", "fqdn", fqdn, "ttl", soa.Hdr.Ttl)
-				return soa.Hdr.Name, nil
+				zone := soa.Hdr.Name
+				fqdnToZone[fqdn] = zone
+				logf.V(logf.DebugLevel).Infof("Returning discovered zone record %q for fqdn %q", zone, fqdn)
+				return zone, nil
 			}
 		}
 	}

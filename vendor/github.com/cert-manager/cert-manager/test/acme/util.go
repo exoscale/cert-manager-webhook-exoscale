@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 	"time"
 
@@ -43,13 +42,8 @@ var (
 
 func (f *fixture) setupNamespace(t *testing.T, name string) (string, func()) {
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
-	if _, err := f.clientset.CoreV1().Namespaces().Create(t.Context(), ns, metav1.CreateOptions{}); err != nil {
+	if _, err := f.clientset.CoreV1().Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("error creating test namespace %q: %v", name, err)
-	}
-
-	kubectl, err := f.adminUser.Kubectl()
-	if err != nil {
-		t.Fatalf("enable to create kubectl instance: %s", err)
 	}
 
 	if f.kubectlManifestsPath != "" {
@@ -67,7 +61,8 @@ func (f *fixture) setupNamespace(t *testing.T, name string) (string, func()) {
 				t.Logf("skipping file %q with unrecognised extension", path)
 				return nil
 			}
-			_, _, err = kubectl.Run("apply", "--namespace", name, "-f", path)
+
+			_, _, err = f.environment.ControlPlane.KubeCtl().Run("apply", "--namespace", name, "-f", path)
 			if err != nil {
 				return err
 			}
@@ -83,13 +78,11 @@ func (f *fixture) setupNamespace(t *testing.T, name string) (string, func()) {
 	}
 
 	return name, func() {
-		if err := f.clientset.CoreV1().Namespaces().Delete(t.Context(), name, metav1.DeleteOptions{}); err != nil {
-			t.Fatalf("error deleting test namespace %q: %v", name, err)
-		}
+		f.clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
 	}
 }
 
-func (f *fixture) buildChallengeRequest(ns string) *whapi.ChallengeRequest {
+func (f *fixture) buildChallengeRequest(t *testing.T, ns string) *whapi.ChallengeRequest {
 	return &whapi.ChallengeRequest{
 		ResourceNamespace:       ns,
 		ResolvedFQDN:            f.resolvedFQDN,
@@ -115,13 +108,13 @@ func allConditions(c ...wait.ConditionWithContextFunc) wait.ConditionWithContext
 
 func (f *fixture) recordHasPropagatedCheck(fqdn, value string) func(ctx context.Context) (bool, error) {
 	return func(ctx context.Context) (bool, error) {
-		return util.PreCheckDNS(ctx, fqdn, value, []string{f.testDNSServer}, *f.useAuthoritative)
+		return util.PreCheckDNS(fqdn, value, []string{f.testDNSServer}, *f.useAuthoritative)
 	}
 }
 
 func (f *fixture) recordHasBeenDeletedCheck(fqdn, value string) func(ctx context.Context) (bool, error) {
 	return func(ctx context.Context) (bool, error) {
-		msg, err := util.DNSQuery(ctx, fqdn, dns.TypeTXT, []string{f.testDNSServer}, *f.useAuthoritative)
+		msg, err := util.DNSQuery(fqdn, dns.TypeTXT, []string{f.testDNSServer}, *f.useAuthoritative)
 		if err != nil {
 			return false, err
 		}
@@ -136,8 +129,10 @@ func (f *fixture) recordHasBeenDeletedCheck(fqdn, value string) func(ctx context
 			if !ok {
 				continue
 			}
-			if slices.Contains(txt.Txt, value) {
-				return false, nil
+			for _, k := range txt.Txt {
+				if k == value {
+					return false, nil
+				}
 			}
 		}
 		return true, nil

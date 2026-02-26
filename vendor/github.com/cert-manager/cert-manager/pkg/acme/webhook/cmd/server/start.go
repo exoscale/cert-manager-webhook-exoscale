@@ -17,13 +17,17 @@ limitations under the License.
 package server
 
 import (
-	"context"
 	"fmt"
+	"io"
 	"net"
 
 	"github.com/spf13/cobra"
+
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apiserver/pkg/features"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/component-base/logs"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook"
@@ -32,6 +36,8 @@ import (
 	logf "github.com/cert-manager/cert-manager/pkg/logs"
 )
 
+const defaultEtcdPathPrefix = "/registry/acme.cert-manager.io"
+
 type WebhookServerOptions struct {
 	Logging *logs.Options
 
@@ -39,44 +45,47 @@ type WebhookServerOptions struct {
 
 	SolverGroup string
 	Solvers     []webhook.Solver
+
+	StdOut io.Writer
+	StdErr io.Writer
 }
 
-func NewWebhookServerOptions(groupName string, solvers ...webhook.Solver) *WebhookServerOptions {
+func NewWebhookServerOptions(out, errOut io.Writer, groupName string, solvers ...webhook.Solver) *WebhookServerOptions {
 	o := &WebhookServerOptions{
 		Logging: logs.NewOptions(),
 
+		// TODO we will nil out the etcd storage options.  This requires a later level of k8s.io/apiserver
 		RecommendedOptions: genericoptions.NewRecommendedOptions(
-			"<UNUSED>",
+			defaultEtcdPathPrefix,
 			apiserver.Codecs.LegacyCodec(whapi.SchemeGroupVersion),
 		),
 
 		SolverGroup: groupName,
 		Solvers:     solvers,
+
+		StdOut: out,
+		StdErr: errOut,
 	}
 	o.RecommendedOptions.Etcd = nil
 	o.RecommendedOptions.Admission = nil
-	o.RecommendedOptions.Features.EnablePriorityAndFairness = false
 
 	return o
 }
 
-func NewCommandStartWebhookServer(_ context.Context, groupName string, solvers ...webhook.Solver) *cobra.Command {
-	o := NewWebhookServerOptions(groupName, solvers...)
+func NewCommandStartWebhookServer(out, errOut io.Writer, stopCh <-chan struct{}, groupName string, solvers ...webhook.Solver) *cobra.Command {
+	o := NewWebhookServerOptions(out, errOut, groupName, solvers...)
 
 	cmd := &cobra.Command{
 		Short: "Launch an ACME solver API server",
 		Long:  "Launch an ACME solver API server",
-		// nolint:contextcheck // False positive
 		RunE: func(c *cobra.Command, args []string) error {
-			runCtx := c.Context()
-
 			if err := o.Complete(); err != nil {
 				return err
 			}
 			if err := o.Validate(args); err != nil {
 				return err
 			}
-			if err := o.RunWebhookServer(runCtx); err != nil {
+			if err := o.RunWebhookServer(stopCh); err != nil {
 				return err
 			}
 			return nil
@@ -132,7 +141,14 @@ func (o WebhookServerOptions) Config() (*apiserver.Config, error) {
 
 // RunWebhookServer creates a new apiserver, registers an API Group for each of
 // the configured solvers and runs the new apiserver.
-func (o WebhookServerOptions) RunWebhookServer(ctx context.Context) error {
+func (o WebhookServerOptions) RunWebhookServer(stopCh <-chan struct{}) error {
+	// extension apiserver does not need priority and fairness.
+	// TODO: this is a short term fix; when APF graduates we will need to
+	// find another way. Alternatives are either to find a way how to
+	// disable APF controller (without the feature gate), run the controller
+	// (create RBAC and ensure required resources are installed) or do some
+	// bigger refactor of this project that could solve the problem
+	utilruntime.Must(utilfeature.DefaultMutableFeatureGate.Set(fmt.Sprintf("%s=false", features.APIPriorityAndFairness)))
 	config, err := o.Config()
 	if err != nil {
 		return err
@@ -142,5 +158,5 @@ func (o WebhookServerOptions) RunWebhookServer(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return server.GenericAPIServer.PrepareRun().RunWithContext(ctx)
+	return server.GenericAPIServer.PrepareRun().Run(stopCh)
 }
