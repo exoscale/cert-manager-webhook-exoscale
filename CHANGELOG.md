@@ -1,4 +1,4 @@
-## unreleased
+## 0.3.4
 
 - Downgrade k8s.io dependencies (fixes regression) #31
 
