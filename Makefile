@@ -38,7 +38,6 @@ OS ?= $(shell $(GO) env GOOS)
 GOARCH ?= $(shell $(GO) env GOARCH)
 
 IMAGE_NAME := "exoscale/cert-manager-webhook-exoscale"
-IMAGE_TAG := "latest"
 
 OUT := $(shell pwd)/_out
 
