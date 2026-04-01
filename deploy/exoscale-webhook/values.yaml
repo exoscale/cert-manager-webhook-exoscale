@@ -6,7 +6,7 @@ certManager:
 
 image:
   repository: exoscale/cert-manager-webhook-exoscale
-  tag: latest
+  tag: 0.3.4
   pullPolicy: IfNotPresent
 
 nameOverride: "exoscale-webhook"
