@@ -186,7 +186,7 @@ spec:
       serviceAccountName: cert-manager-webhook-exoscale
       containers:
         - name: cert-manager-webhook-exoscale-chart
-          image: "exoscale/cert-manager-webhook-exoscale:latest"
+          image: "exoscale/cert-manager-webhook-exoscale:0.3.4"
           imagePullPolicy: IfNotPresent
           args:
             - --tls-cert-file=/tls/tls.crt
