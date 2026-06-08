@@ -7,7 +7,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 ---
@@ -19,7 +19,7 @@ metadata:
   name: cert-manager-webhook-exoscale:domain-solver
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 rules:
@@ -39,7 +39,7 @@ metadata:
   name: cert-manager-webhook-exoscale:auth-delegator
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -59,7 +59,7 @@ metadata:
   name: cert-manager-webhook-exoscale:domain-solver
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -81,7 +81,7 @@ metadata:
   namespace: cert-manager
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 rules:
@@ -103,7 +103,7 @@ metadata:
   namespace: kube-system
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -125,7 +125,7 @@ metadata:
   namespace: cert-manager
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -137,6 +137,7 @@ subjects:
     kind: ServiceAccount
     name: cert-manager-webhook-exoscale
     namespace: cert-manager
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/service.yaml
 apiVersion: v1
@@ -146,7 +147,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -159,6 +160,7 @@ spec:
   selector:
     app: exoscale-webhook
     release: exoscale-webhook
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/deployment.yaml
 apiVersion: apps/v1
@@ -168,7 +170,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -186,7 +188,7 @@ spec:
       serviceAccountName: cert-manager-webhook-exoscale
       containers:
         - name: cert-manager-webhook-exoscale-chart
-          image: "exoscale/cert-manager-webhook-exoscale:0.3.4"
+          image: "exoscale/cert-manager-webhook-exoscale:0.3.5"
           imagePullPolicy: IfNotPresent
           args:
             - --tls-cert-file=/tls/tls.crt
@@ -222,6 +224,7 @@ spec:
         - name: certs
           secret:
             secretName: cert-manager-webhook-exoscale-webhook-tls
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/apiservice.yaml
 apiVersion: apiregistration.k8s.io/v1
@@ -230,7 +233,7 @@ metadata:
   name: v1alpha1.acme.exoscale.com
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
   annotations:
@@ -243,6 +246,7 @@ spec:
     name: cert-manager-webhook-exoscale
     namespace: cert-manager
   version: v1alpha1
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/pki.yaml
 # Generate a CA Certificate used to sign certificates for the webhook
@@ -253,7 +257,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -273,7 +277,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -285,6 +289,7 @@ spec:
   - cert-manager-webhook-exoscale
   - cert-manager-webhook-exoscale.cert-manager
   - cert-manager-webhook-exoscale.cert-manager.svc
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/pki.yaml
 # Create a selfsigned Issuer, in order to create a root CA certificate for
@@ -296,7 +301,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -311,7 +316,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.4
+    chart: cert-manager-webhook-exoscale-chart-0.3.5
     release: exoscale-webhook
     heritage: Helm
 spec:

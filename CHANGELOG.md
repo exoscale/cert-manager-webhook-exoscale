@@ -1,3 +1,9 @@
+## 0.3.5
+
+- Update GitHub Actions to latest vetted versions
+- Build with go 1.26.4
+- Update dependencies
+
 ## 0.3.4
 
 - Downgrade k8s.io dependencies (fixes regression) #31
