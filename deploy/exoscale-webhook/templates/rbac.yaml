@@ -13,6 +13,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
 ---
 # Grant the webhook permission to read the ConfigMap containing the Kubernetes
 # apiserver's requestheader-ca-certificate.
@@ -31,6 +34,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -56,6 +62,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -80,6 +89,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
 rules:
   - apiGroups:
       - {{ .Values.groupName }}
@@ -101,6 +113,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -126,6 +141,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
 rules:
   - apiGroups:
     - ''
@@ -149,6 +167,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
