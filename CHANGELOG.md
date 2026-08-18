@@ -1,6 +1,7 @@
 ## Unreleased
 
 - Helm deployment: custom labels #36
+- Updated dependencies to resolve govulncheck report #38
 
 ## 0.3.5
 
