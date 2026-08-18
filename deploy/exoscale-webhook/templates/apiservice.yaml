@@ -8,6 +8,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
   annotations:
     {{- with .Values.annotations }}
 {{- toYaml . | nindent 4 }}

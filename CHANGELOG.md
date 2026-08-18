@@ -1,3 +1,7 @@
+## Unreleased
+
+- Helm deployment: custom labels #36
+
 ## 0.3.5
 
 - Update GitHub Actions to latest vetted versions

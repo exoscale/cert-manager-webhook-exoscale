@@ -15,6 +15,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
 spec:
   selfSigned: {}
 
@@ -35,6 +38,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
 spec:
   secretName: {{ include "exoscale-webhook.rootCACertificate" . }}
   duration: 43800h # 5y
@@ -60,6 +66,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
 spec:
   ca:
     secretName: {{ include "exoscale-webhook.rootCACertificate" . }}
@@ -81,6 +90,9 @@ metadata:
     chart: {{ include "exoscale-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
 spec:
   secretName: {{ include "exoscale-webhook.servingCertificate" . }}
   duration: 8760h # 1y
