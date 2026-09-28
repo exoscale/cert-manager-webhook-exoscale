@@ -7,9 +7,10 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/rbac.yaml
 # Grant cert-manager permission to validate using our apiserver
@@ -19,7 +20,7 @@ metadata:
   name: cert-manager-webhook-exoscale:domain-solver
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 rules:
@@ -29,6 +30,7 @@ rules:
       - '*'
     verbs:
       - 'create'
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/rbac.yaml
 # apiserver gets the auth-delegator role to delegate auth decisions to
@@ -39,7 +41,7 @@ metadata:
   name: cert-manager-webhook-exoscale:auth-delegator
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -51,6 +53,7 @@ subjects:
     kind: ServiceAccount
     name: cert-manager-webhook-exoscale
     namespace: cert-manager
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -59,7 +62,7 @@ metadata:
   name: cert-manager-webhook-exoscale:domain-solver
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -71,6 +74,7 @@ subjects:
     kind: ServiceAccount
     name: cert-manager
     namespace: cert-manager
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/rbac.yaml
 # Grant the webhook permission to read the secrets containing the credentials
@@ -81,7 +85,7 @@ metadata:
   namespace: cert-manager
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 rules:
@@ -91,6 +95,7 @@ rules:
     - 'secrets'
     verbs:
     - 'get'
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/rbac.yaml
 # Grant the webhook permission to read the ConfigMap containing the Kubernetes
@@ -103,7 +108,7 @@ metadata:
   namespace: kube-system
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -115,6 +120,7 @@ subjects:
     kind: ServiceAccount
     name: cert-manager-webhook-exoscale
     namespace: cert-manager
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/rbac.yaml
 # Grant the webhook permission to read the secrets containing the credentials
@@ -125,7 +131,7 @@ metadata:
   namespace: cert-manager
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 roleRef:
@@ -147,7 +153,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -170,7 +176,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -233,7 +239,7 @@ metadata:
   name: v1alpha1.acme.exoscale.com
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
   annotations:
@@ -257,7 +263,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -267,6 +273,8 @@ spec:
     name: cert-manager-webhook-exoscale-selfsign
   commonName: "ca.exoscale-webhook.cert-manager"
   isCA: true
+
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/pki.yaml
 # Finally, generate a serving certificate for the webhook to use
@@ -277,7 +285,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 spec:
@@ -301,11 +309,13 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 spec:
   selfSigned: {}
+
+
 ---
 # Source: cert-manager-webhook-exoscale-chart/templates/pki.yaml
 # Create an Issuer that uses the above generated CA certificate to issue certs
@@ -316,7 +326,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: exoscale-webhook
-    chart: cert-manager-webhook-exoscale-chart-0.3.5
+    chart: cert-manager-webhook-exoscale-chart-0.3.6
     release: exoscale-webhook
     heritage: Helm
 spec:
